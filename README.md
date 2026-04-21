@@ -91,7 +91,7 @@ When `cirpass2.enabled: true` is set in configuration, the resolver optionally v
 
 ## Project status
 
-This project is funded by [NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation, EU-funded). Active development — see [milestones](https://github.com/grigolatoe/gs1-digital-link-resolver/milestones).
+Active development. Funding application submitted to [NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation, EU-funded).
 
 | Milestone | Status |
 |---|---|
