@@ -12,8 +12,7 @@ This project provides that resolver as a complete, self-hostable service:
 
 - Parses GS1 Digital Link URIs per **GS1 Digital Link standard v1.2**
 - Routes resolved URIs to DPP endpoints via declarative YAML configuration
-- Handles **content negotiation** — HTML for browsers, `application/ld+json` for machines (CIRPASS-2 best practice)
-- Validates DPP completeness via optional **CIRPASS-2 validator** integration
+- Handles **content negotiation** — HTML for browsers, `application/ld+json` for machines
 - Ships as a **single Docker image**, deployable in under 10 minutes
 
 **Licence:** Apache 2.0 — use freely in any context, commercial or otherwise.
@@ -38,9 +37,11 @@ This project removes that barrier.
 ## Quick start
 
 ```bash
-docker run -p 8080:8080 \
-  -v ./config/routes.yaml:/app/config/routes.yaml \
-  ghcr.io/grigolatoe/gs1-digital-link-resolver:latest
+git clone https://github.com/grigolatoe/gs1-digital-link-resolver.git
+cd gs1-digital-link-resolver
+cp config/routes.example.yaml config/routes.yaml
+docker build -t gs1-resolver .
+docker run -p 8080:8080 -v ./config/routes.yaml:/app/config/routes.yaml gs1-resolver
 ```
 
 Then scan or visit:
@@ -81,25 +82,28 @@ resolvers:
 | Accept header | Response |
 |---|---|
 | `text/html` (default) | 302 redirect to product page |
-| `application/ld+json` | 200 JSON-LD DPP data |
-| `application/json` | 200 JSON DPP summary |
-| `*/*` | 200 link set (GS1 Digital Link link resolver response) |
+| `application/ld+json` | 200 JSON-LD link set |
+| `application/json` | 200 JSON link set |
+| `*/*` | 200 JSON link set (GS1 Digital Link link resolver response format) |
 
-## CIRPASS-2 integration
+## CIRPASS-2 integration *(planned)*
 
-When `cirpass2.enabled: true` is set in configuration, the resolver optionally validates the DPP completeness at resolve time by calling the CIRPASS-2 open-source validator. Validation failures are logged but do not block resolution (non-breaking).
+A future milestone will add optional DPP completeness validation via the CIRPASS-2 open-source validator. When enabled, the resolver will verify DPP data at resolve time and log validation results without blocking resolution.
 
 ## Project status
 
-Active development. Funding application submitted to [NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation, EU-funded).
+Early development — initial URI parser, routing engine, and HTTP service are implemented as a working scaffold. A funding application has been submitted to [NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation, EU-funded).
 
-| Milestone | Status |
+**Roadmap:**
+
+| | Milestone |
 |---|---|
-| GS1 DL v1.2 URI parser + architecture | In progress |
-| Core resolver + configurable routing | Planned |
-| ESPR/DPP profile + content negotiation | Planned |
-| CIRPASS-2 validator integration | Planned |
-| Docker image + deployment docs | Planned |
+| ✅ | GS1 DL v1.2 URI parser — numeric AI and alpha-coded forms, GTIN-14 validation |
+| ✅ | Routing engine — declarative YAML config, prefix/regex matching, link types |
+| ✅ | HTTP service — FastAPI, content negotiation, Docker image |
+| 🔲 | Full ESPR/DPP profile — complete AI coverage, GS1 conformance test suite |
+| 🔲 | CIRPASS-2 validator integration |
+| 🔲 | Deployment documentation and operator guide |
 
 ## Standards references
 
@@ -110,7 +114,7 @@ Active development. Funding application submitted to [NGI Zero Commons Fund](htt
 
 ## Contributing
 
-Issues and PRs welcome. This project is developed in active collaboration with the [CIRPASS-2 Community of Practice](https://cirpass-2.eu) — a 500+ member EU network of DPP platform providers, brands, and standards bodies.
+Issues and PRs welcome. This project aims to serve the [CIRPASS-2 Community of Practice](https://cirpass-2.eu) — a 500+ member EU network of DPP platform providers, brands, and standards bodies — and the broader ESPR compliance ecosystem.
 
 ## Licence
 
