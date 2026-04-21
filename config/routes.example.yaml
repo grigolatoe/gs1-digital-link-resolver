@@ -1,0 +1,39 @@
+# routes.yaml — GS1 Digital Link Resolver configuration
+#
+# Routes are matched top-to-bottom; first match wins.
+# Copy this file to routes.yaml and adapt to your setup.
+
+resolvers:
+
+  # Route by GTIN prefix (e.g. your brand's GS1 company prefix)
+  - match:
+      gtin_prefix: "978"
+    target: "https://dpp.example.com/passport/{gtin}/{serial}"
+    link_types:
+      - rel: "gs1:pip"
+        href: "https://dpp.example.com/passport/{gtin}/{serial}"
+        type: "text/html"
+        title: "Digital Product Passport"
+      - rel: "gs1:verificationService"
+        href: "https://dpp.example.com/api/verify/{gtin}/{serial}"
+        type: "application/json"
+        title: "Authenticity Verification"
+
+  # Internal / private GTINs (GS1 prefix 200–299)
+  - match:
+      gtin_prefix: "200"
+    target: "https://internal.example.com/dpp/{gtin}"
+    link_types:
+      - rel: "gs1:pip"
+        href: "https://internal.example.com/dpp/{gtin}"
+        type: "text/html"
+        title: "Product Information"
+
+  # Fallback: forward unmatched GTINs to the GS1 global resolver
+  - match: "*"
+    target: "https://id.gs1.org/01/{gtin}"
+    link_types:
+      - rel: "gs1:pip"
+        href: "https://id.gs1.org/01/{gtin}"
+        type: "text/html"
+        title: "GS1 Global Registry"
