@@ -2,7 +2,16 @@
 app.py — HTTP resolver service
 
 Exposes a single endpoint that accepts GS1 Digital Link URI paths,
-parses them, and responds according to content negotiation rules.
+parses them, and responds according to content negotiation rules:
+
+  Accept: text/html                  → 302 to the default link's href
+  Accept: application/linkset+json   → 200 RFC 9264 link-set
+  Accept: application/ld+json        → 200 JSON-LD link-set
+  Accept: application/json           → 200 link-set (RFC 9264 shape)
+  Accept: */*  (or anything else)    → 200 link-set (RFC 9264 shape)
+
+Per GS1 DL §6.4 the `?linkType=` query parameter narrows the response to a
+single relation when supplied.
 
 Run with:
     uvicorn resolver.app:app --host 0.0.0.0 --port 8080
@@ -14,13 +23,14 @@ Or via Docker:
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse, JSONResponse
 
+from .linkset import build_jsonld, build_linkset, default_link_href
+from .negotiate import select_media_type
 from .parser import parse, validate_gtin14
 from .router import Router
 
@@ -28,8 +38,8 @@ CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", "/app/config/routes.yaml"))
 
 app = FastAPI(
     title="GS1 Digital Link Resolver",
-    description="Open resolver for EU Digital Product Passports",
-    version="0.1.0",
+    description="Open-source resolver for EU Digital Product Passports",
+    version="0.2.0",
     license_info={"name": "Apache 2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0"},
 )
 
@@ -50,15 +60,6 @@ def healthz() -> dict:
 
 @app.get("/{path:path}")
 async def resolve(path: str, request: Request) -> Response:
-    """
-    Resolve a GS1 Digital Link URI path.
-
-    Content negotiation:
-    - Accept: text/html → 302 redirect to product page
-    - Accept: application/ld+json → 200 JSON-LD link set
-    - Accept: application/json → 200 JSON link set
-    - default → 200 JSON link set (GS1 DL link resolver response format)
-    """
     full_path = "/" + path
     query_string = str(request.url.query)
     uri = full_path + (f"?{query_string}" if query_string else "")
@@ -79,24 +80,22 @@ async def resolve(path: str, request: Request) -> Response:
         return JSONResponse({"error": "No route found for this identifier"}, status_code=404)
 
     target, link_types = result
-    accept = request.headers.get("accept", "text/html")
+    requested_lt = parsed.link_type
+    accept = request.headers.get("accept", "")
+    chosen = select_media_type(accept)
 
-    if "text/html" in accept:
-        return RedirectResponse(url=target, status_code=302)
+    if chosen == "text/html":
+        # Default-link-aware redirect: prefer the explicit linkType= filter,
+        # otherwise the route target.
+        anchor = str(request.url)
+        linkset = build_linkset(anchor=anchor, links=link_types, requested_link_type=requested_lt)
+        href = default_link_href(linkset) or target
+        return RedirectResponse(url=href, status_code=302)
 
-    link_set = {
-        "linkset": [
-            {
-                "anchor": str(request.url),
-                **{
-                    lt.rel: [
-                        {"href": lt.href, "type": lt.type, "title": lt.title}
-                    ]
-                    for lt in link_types
-                },
-            }
-        ]
-    }
+    anchor = str(request.url)
+    linkset = build_linkset(anchor=anchor, links=link_types, requested_link_type=requested_lt)
 
-    media_type = "application/ld+json" if "ld+json" in accept else "application/json"
-    return JSONResponse(link_set, media_type=media_type)
+    if chosen == "application/ld+json":
+        return JSONResponse(build_jsonld(linkset), media_type="application/ld+json")
+    # both application/linkset+json and application/json get the RFC 9264 shape
+    return JSONResponse(linkset, media_type=chosen)
