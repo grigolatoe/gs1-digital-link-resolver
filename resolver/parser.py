@@ -1,13 +1,19 @@
 """
 parser.py — GS1 Digital Link URI parser
 
-Parses GS1 Digital Link URIs per GS1 Digital Link Standard v1.2 / ISO 22742.
+Parses GS1 Digital Link URIs per GS1 Digital Link Standard v1.2 (the
+ISO/IEC 18975 candidate text). Two URI shapes are accepted:
 
-Reference: https://www.gs1.org/standards/gs1-digital-link
+  Numeric AI form:   /01/{gtin14}/22/{cpv}/10/{lot}/21/{serial}?linkType=...
+  Alpha-coded form:  /gtin/{gtin14}/cpv/{cpv}/lot/{lot}/ser/{serial}
 
-Supported forms:
-  Uncompressed: /01/{gtin14}/21/{serial}?linkType=...
-  Alpha-coded:  /gtin/{gtin14}/ser/{serial}
+The full DL-compatible AI table lives in `ai_table.py`. The parser only
+recognises AIs that the standard permits in a DL URI; unknown numeric path
+segments are kept verbatim as qualifiers but flagged via `unknown_ais` so a
+caller can decide whether to refuse the request.
+
+The parser does not enforce qualifier *ordering*; ordering is a concern of
+canonical URI generation (`canonicalise()`), not of routing.
 """
 
 from __future__ import annotations
@@ -15,63 +21,21 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from typing import Optional
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
-# GS1 Application Identifier → field name (DPP-relevant subset)
-_AI_TO_NAME: dict[str, str] = {
-    "00": "sscc",
-    "01": "gtin",
-    "10": "batch_lot",
-    "17": "expiry_date",
-    "21": "serial_number",
-    "22": "cpv",
-    "235": "tpx",
-    "414": "gln",
-    "710": "nhrn_de",
-    "711": "nhrn_fr",
-    "712": "nhrn_es",
-    "713": "nhrn_br",
-    "714": "nhrn_pt",
-    "723": "cert_ref",
-    "8001": "roll_products",
-    "8002": "cmid",
-    "8003": "grai",
-    "8004": "giai",
-    "8006": "itip",
-    "8007": "iban",
-    "8008": "prod_time",
-    "8010": "cpid",
-    "8011": "cpid_serial",
-    "8013": "gmn",
-    "8017": "gsrn_provider",
-    "8018": "gsrn_recipient",
-    "8020": "ref",
-    "8200": "product_url",
-}
+from .ai_table import (
+    AI_TO_NAME,
+    AI_TO_SPEC,
+    NAME_TO_AI,
+    PRIMARY_AIS,
+    QUALIFIER_ORDER,
+    fixed_length,
+    is_known,
+)
 
-# Alpha-coded short names → AI (GS1 DL v1.2 §4.5)
-_NAME_TO_AI: dict[str, str] = {
-    "sscc":    "00",
-    "gtin":    "01",
-    "lot":     "10",
-    "exp":     "17",
-    "ser":     "21",
-    "cpv":     "22",
-    "tpx":     "235",
-    "gln":     "414",
-    "certref": "723",
-    "grai":    "8003",
-    "giai":    "8004",
-    "itip":    "8006",
-    "cpid":    "8010",
-    "gmn":     "8013",
-}
-
-# Primary keys and their qualifier ordering (GS1 DL v1.2 §4.4)
-_PRIMARY_KEYS = {"00", "01", "253", "255", "414", "8003", "8004", "8006", "8010", "8013", "8017", "8018"}
-
-# Regex: numeric AI path segment — /NN.../ followed by value
-_AI_PATH_RE = re.compile(r"/(\d{2,4})/([^/]*)")
+# Regex: numeric AI path segment — /NN.../ followed by value (value cannot
+# contain '/' — qualifiers always live in their own path segments).
+_AI_PATH_RE = re.compile(r"/(\d{2,4})/([^/?#]+)")
 
 
 @dataclass
@@ -79,10 +43,13 @@ class GS1ParseResult:
     """Result of parsing a GS1 Digital Link URI."""
     primary_ai: str = ""           # e.g. "01"
     primary_value: str = ""        # e.g. "09780345418913"
-    qualifiers: dict[str, str] = field(default_factory=dict)   # AI → value
+    qualifiers: dict[str, str] = field(default_factory=dict)
+    attributes: dict[str, str] = field(default_factory=dict)
     query_params: dict[str, list[str]] = field(default_factory=dict)
     link_type: Optional[str] = None
+    unknown_ais: list[tuple[str, str]] = field(default_factory=list)
 
+    # ---- convenience accessors --------------------------------------------
     @property
     def gtin(self) -> Optional[str]:
         return self.primary_value if self.primary_ai == "01" else None
@@ -96,14 +63,28 @@ class GS1ParseResult:
         return self.qualifiers.get("10")
 
     @property
-    def expiry_date(self) -> Optional[str]:
-        return self.qualifiers.get("17")
+    def cpv(self) -> Optional[str]:
+        return self.qualifiers.get("22")
 
-    def as_dict(self) -> dict:
-        result = {_AI_TO_NAME.get(self.primary_ai, self.primary_ai): self.primary_value}
-        for ai, value in self.qualifiers.items():
-            result[_AI_TO_NAME.get(ai, ai)] = value
-        return result
+    @property
+    def expiry_date(self) -> Optional[str]:
+        return self.attributes.get("17")
+
+    def as_dict(self) -> dict[str, str]:
+        """Flat name → value mapping for template substitution."""
+        out: dict[str, str] = {}
+        if self.primary_ai:
+            out[AI_TO_NAME.get(self.primary_ai, self.primary_ai)] = self.primary_value
+            out[self.primary_ai] = self.primary_value
+        for ai, value in {**self.qualifiers, **self.attributes}.items():
+            name = AI_TO_NAME.get(ai, ai)
+            out[name] = value
+            out[ai] = value
+        # Convenience aliases used in user-supplied templates
+        out.setdefault("serial", self.qualifiers.get("21", ""))
+        out.setdefault("batch",  self.qualifiers.get("10", ""))
+        out.setdefault("expiry", self.attributes.get("17", ""))
+        return out
 
 
 def parse(uri: str) -> GS1ParseResult:
@@ -113,11 +94,11 @@ def parse(uri: str) -> GS1ParseResult:
     Accepts both numeric AI form (/01/...) and alpha-coded form (/gtin/...).
     Strips the scheme and host — only the path and query string are parsed.
 
-    Raises ValueError if no primary key is found in the path.
+    Raises ValueError if no recognised primary key is present in the path.
     """
     parsed = urlparse(uri)
     path = parsed.path
-    query = parse_qs(parsed.query)
+    query = parse_qs(parsed.query, keep_blank_values=True)
 
     result = GS1ParseResult(query_params=query)
     result.link_type = query.get("linkType", [None])[0]
@@ -125,19 +106,25 @@ def parse(uri: str) -> GS1ParseResult:
     # Normalise alpha-coded segments to numeric AI form
     path = _normalise_alpha(path)
 
-    # Extract all AI/value pairs from path
     segments: list[tuple[str, str]] = _AI_PATH_RE.findall(path)
     if not segments:
         raise ValueError(f"No GS1 Application Identifiers found in path: {path!r}")
 
     primary_set = False
     for ai, value in segments:
-        if ai in _PRIMARY_KEYS and not primary_set:
+        if ai in PRIMARY_AIS and not primary_set:
             result.primary_ai = ai
             result.primary_value = value
             primary_set = True
-        else:
+            continue
+        if not is_known(ai):
+            result.unknown_ais.append((ai, value))
+            continue
+        spec = AI_TO_SPEC[ai]
+        if spec.category.value == "qualifier":
             result.qualifiers[ai] = value
+        else:
+            result.attributes[ai] = value
 
     if not primary_set:
         raise ValueError(f"No recognised primary key in path: {path!r}")
@@ -146,8 +133,11 @@ def parse(uri: str) -> GS1ParseResult:
 
 
 def _normalise_alpha(path: str) -> str:
-    """Convert alpha-coded path segments to numeric AI form."""
-    for name, ai in _NAME_TO_AI.items():
+    """Convert alpha-coded path segments to numeric AI form (case-insensitive)."""
+    # Sort alpha names by length descending so longer names ('certref') win
+    # over shorter prefixes that might overlap.
+    for name in sorted(NAME_TO_AI.keys(), key=len, reverse=True):
+        ai = NAME_TO_AI[name]
         path = re.sub(
             rf"(?<=/){re.escape(name)}/",
             f"{ai}/",
@@ -157,18 +147,62 @@ def _normalise_alpha(path: str) -> str:
     return path
 
 
+# --- GTIN check digit -------------------------------------------------------
+
 def validate_gtin14(gtin: str) -> bool:
     """
     Validate a GTIN-14 string using the GS1 Modulo-10 check digit algorithm.
 
-    Returns True if the GTIN is exactly 14 digits and the check digit is correct.
+    GTIN-14 is the canonical length used in GS1 Digital Link URIs — shorter
+    GTINs (8/12/13) MUST be left-padded with zeros before forming a DL URI.
     """
     if not re.fullmatch(r"\d{14}", gtin):
         return False
     digits = [int(d) for d in gtin]
-    total = sum(
-        d * (3 if i % 2 == 0 else 1)
-        for i, d in enumerate(digits[:-1])
-    )
-    check = (10 - (total % 10)) % 10
+    weighted = sum(d * (3 if i % 2 == 0 else 1) for i, d in enumerate(digits[:-1]))
+    check = (10 - (weighted % 10)) % 10
     return check == digits[-1]
+
+
+def pad_gtin_to_14(gtin: str) -> str:
+    """Left-pad GTIN-8/12/13 with zeros to GTIN-14. Idempotent on GTIN-14."""
+    if not gtin.isdigit():
+        return gtin
+    if len(gtin) in (8, 12, 13, 14):
+        return gtin.zfill(14)
+    return gtin
+
+
+# --- Canonical URI generation ----------------------------------------------
+
+def canonicalise(parsed: GS1ParseResult, host: str = "id.gs1.org") -> str:
+    """
+    Produce a canonical GS1 Digital Link URI for `parsed`.
+
+    Canonical form (per GS1 DL §4.6):
+      - host: id.gs1.org by default
+      - primary key first
+      - qualifiers in the order defined for the primary key
+      - attributes in numeric-AI order
+      - query parameters dropped (canonical form is path-only)
+    """
+    if not parsed.primary_ai:
+        raise ValueError("Cannot canonicalise: no primary key set")
+
+    parts = [f"/{parsed.primary_ai}/{quote(parsed.primary_value, safe='')}"]
+
+    order = QUALIFIER_ORDER.get(parsed.primary_ai, ())
+    seen: set[str] = set()
+    for ai in order:
+        if ai in parsed.qualifiers:
+            parts.append(f"/{ai}/{quote(parsed.qualifiers[ai], safe='')}")
+            seen.add(ai)
+    # Append any qualifiers not in the ordered set, sorted by AI
+    for ai in sorted(parsed.qualifiers):
+        if ai not in seen:
+            parts.append(f"/{ai}/{quote(parsed.qualifiers[ai], safe='')}")
+    # Append attributes in numeric-AI order
+    for ai in sorted(parsed.attributes):
+        parts.append(f"/{ai}/{quote(parsed.attributes[ai], safe='')}")
+
+    return f"https://{host}" + "".join(parts)
