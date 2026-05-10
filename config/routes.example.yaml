@@ -2,12 +2,17 @@
 #
 # Routes are matched top-to-bottom; first match wins.
 # Copy this file to routes.yaml and adapt to your setup.
+#
+# NOTE: GTIN values in DL URIs are GTIN-14 — left-padded with zero for
+#       GTIN-13 / GTIN-12 / GTIN-8 inputs. So a "books" GS1 prefix of
+#       978 appears in DL URIs as "0978...". Prefix matches are literal
+#       string-startswith on the value as it appears in the URI.
 
 resolvers:
 
-  # Route by GTIN prefix (e.g. your brand's GS1 company prefix)
+  # Route by GTIN prefix (e.g. your brand's GS1 company prefix, padded)
   - match:
-      gtin_prefix: "978"
+      gtin_prefix: "0978"
     target: "https://dpp.example.com/passport/{gtin}/{serial}"
     link_types:
       - rel: "gs1:pip"
@@ -18,16 +23,29 @@ resolvers:
         href: "https://dpp.example.com/api/verify/{gtin}/{serial}"
         type: "application/json"
         title: "Authenticity Verification"
+      - rel: "gs1:digitalProductPassport"
+        href: "https://dpp.example.com/dpp/{gtin}/{serial}.json"
+        type: "application/ld+json"
+        title: "ESPR-conformant DPP"
 
-  # Internal / private GTINs (GS1 prefix 200–299)
+  # Internal / private GTINs (GS1 prefix 200–299, padded form "0200..0299")
   - match:
-      gtin_prefix: "200"
+      gtin_regex: "^02[0-9]{12}$"
     target: "https://internal.example.com/dpp/{gtin}"
     link_types:
       - rel: "gs1:pip"
         href: "https://internal.example.com/dpp/{gtin}"
         type: "text/html"
         title: "Product Information"
+
+  # GRAI-routed returnable assets (e.g. reusable transport packaging)
+  - match:
+      primary_ai: "8003"
+    target: "https://assets.example.com/grai/{8003}"
+    link_types:
+      - rel: "gs1:pip"
+        href: "https://assets.example.com/grai/{8003}"
+        type: "text/html"
 
   # Fallback: forward unmatched GTINs to the GS1 global resolver
   - match: "*"

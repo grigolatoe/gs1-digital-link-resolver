@@ -2,16 +2,33 @@
 router.py — Routing engine for GS1 Digital Link resolution
 
 Loads routing rules from a YAML config file and resolves parsed GS1 URIs
-to DPP endpoint URLs, supporting content negotiation link sets.
+to DPP endpoint URLs plus a list of typed links suitable for an RFC 9264
+link-set response.
+
+Match clauses (any combination, all must match):
+
+  primary_ai:    "01"          — only this primary key applies
+  gtin_prefix:   "978"         — primary value (any primary, but typically
+                                  GTIN) starts with this prefix
+  gtin_regex:    "^...$"       — full match against the primary value
+  has_qualifier: "21"          — at least this qualifier AI is present
+  serial_in:    ["A", "B"]     — serial number is one of these literals
+
+A match shorthand of "*" (or {}) acts as a default fallback rule.
+
+Templates may reference any of: primary AI numeric ({01}), primary alpha
+({gtin}), qualifier AIs/aliases, attribute AIs/aliases, plus convenience
+aliases {serial}, {batch}, {expiry}.
 """
 
 from __future__ import annotations
 
 import re
-import yaml
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+import yaml
 
 from .parser import GS1ParseResult
 
@@ -24,7 +41,7 @@ class LinkType:
     title: str = ""
     hreflang: Optional[str] = None
 
-    def resolve(self, ctx: dict) -> "LinkType":
+    def resolve(self, ctx: dict[str, str]) -> "LinkType":
         return LinkType(
             rel=self.rel,
             href=_fill(self.href, ctx),
@@ -40,15 +57,38 @@ class Route:
     target: str
     link_types: list[LinkType] = field(default_factory=list)
 
+    def matches(self, parsed: GS1ParseResult) -> bool:
+        if self.match in ("*", {}, None):
+            return True
+        m = self.match
+        if "primary_ai" in m:
+            if parsed.primary_ai != str(m["primary_ai"]):
+                return False
+        if "gtin_prefix" in m:
+            if not parsed.primary_value.startswith(str(m["gtin_prefix"])):
+                return False
+        if "gtin_regex" in m:
+            if not re.fullmatch(m["gtin_regex"], parsed.primary_value):
+                return False
+        if "has_qualifier" in m:
+            if str(m["has_qualifier"]) not in parsed.qualifiers:
+                return False
+        if "serial_in" in m:
+            serial = parsed.qualifiers.get("21")
+            if serial is None or serial not in m["serial_in"]:
+                return False
+        return True
+
 
 class Router:
-    def __init__(self, config_path: str | Path):
+    def __init__(self, config_path: str | Path | None = None):
         self._routes: list[Route] = []
-        self.load(config_path)
+        if config_path is not None:
+            self.load(config_path)
 
     def load(self, path: str | Path) -> None:
         with open(path) as f:
-            config = yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
         self._routes = []
         for rule in config.get("resolvers", []):
             link_types = [
@@ -72,39 +112,23 @@ class Router:
         Find the first matching route for the parsed GS1 URI.
 
         Returns (target_url, link_types) or None if no route matches.
+        Templates in target and link href/title are filled with values from
+        the parsed URI (numeric AI, alpha name, and convenience aliases).
         """
         ctx = parsed.as_dict()
-        ctx.update({
-            "gtin":   parsed.primary_value if parsed.primary_ai == "01" else "",
-            "serial": parsed.qualifiers.get("21", ""),
-            "batch":  parsed.qualifiers.get("10", ""),
-            "expiry": parsed.qualifiers.get("17", ""),
-        })
-
         for route in self._routes:
-            if self._matches(route.match, parsed):
+            if route.matches(parsed):
                 target = _fill(route.target, ctx)
                 links = [lt.resolve(ctx) for lt in route.link_types]
                 return target, links
         return None
 
-    def _matches(self, match: dict, parsed: GS1ParseResult) -> bool:
-        if match == "*" or match == {}:
-            return True
-        if "gtin_prefix" in match:
-            if not parsed.primary_value.startswith(match["gtin_prefix"]):
-                return False
-        if "gtin_regex" in match:
-            if not re.fullmatch(match["gtin_regex"], parsed.primary_value):
-                return False
-        if "primary_ai" in match:
-            if parsed.primary_ai != str(match["primary_ai"]):
-                return False
-        return True
 
-
-def _fill(template: str, ctx: dict) -> str:
+def _fill(template: str, ctx: dict[str, str]) -> str:
     """Replace {key} placeholders in template with ctx values."""
-    for key, value in ctx.items():
-        template = template.replace(f"{{{key}}}", value or "")
+    if not template:
+        return template
+    # Sort keys longest-first so 'serial' is replaced before 'ser', etc.
+    for key in sorted(ctx.keys(), key=len, reverse=True):
+        template = template.replace(f"{{{key}}}", ctx[key] or "")
     return template
