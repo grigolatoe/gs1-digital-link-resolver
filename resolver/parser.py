@@ -133,18 +133,27 @@ def parse(uri: str) -> GS1ParseResult:
 
 
 def _normalise_alpha(path: str) -> str:
-    """Convert alpha-coded path segments to numeric AI form (case-insensitive)."""
-    # Sort alpha names by length descending so longer names ('certref') win
-    # over shorter prefixes that might overlap.
-    for name in sorted(NAME_TO_AI.keys(), key=len, reverse=True):
-        ai = NAME_TO_AI[name]
-        path = re.sub(
-            rf"(?<=/){re.escape(name)}/",
-            f"{ai}/",
-            path,
-            flags=re.IGNORECASE,
-        )
-    return path
+    """
+    Convert alpha-coded path segments to numeric AI form (case-insensitive).
+
+    Walks tokens at *AI position* only (odd-numbered segments from the path
+    root) and rewrites recognised alpha names. Values at the value position
+    are left untouched, which prevents the bug where a serial number like
+    'SER' or a lot 'LOT' was misinterpreted as an alpha-coded AI.
+    """
+    if not path or path == "/":
+        return path
+    parts = path.split("/")
+    # parts[0] is "" (leading slash). Tokens alternate: parts[1]=AI, parts[2]=value,
+    # parts[3]=AI, parts[4]=value, ...
+    out = [parts[0]]
+    for i, token in enumerate(parts[1:], start=1):
+        if i % 2 == 1:  # AI position
+            ai = NAME_TO_AI.get(token.lower())
+            out.append(ai if ai else token)
+        else:           # value position — leave verbatim
+            out.append(token)
+    return "/".join(out)
 
 
 # --- GTIN check digit -------------------------------------------------------
