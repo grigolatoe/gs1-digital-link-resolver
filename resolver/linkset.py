@@ -66,6 +66,7 @@ def build_linkset(
     anchor: str,
     links: list[LinkType],
     requested_link_type: str | None = None,
+    validation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Build an RFC 9264 link-set object for the resolver response.
@@ -103,11 +104,12 @@ def build_linkset(
             entry["hreflang"] = [lt.hreflang] if isinstance(lt.hreflang, str) else list(lt.hreflang)
         grouped.setdefault(rel, []).append(entry)
 
-    return {
-        "linkset": [
-            {"anchor": anchor, **grouped}
-        ]
-    }
+    entry: dict[str, Any] = {"anchor": anchor, **grouped}
+    if validation is not None:
+        # Surface validation as a non-blocking sidecar field. Consumers that
+        # don't know about it will simply ignore it.
+        entry["gs1:validationStatus"] = validation
+    return {"linkset": [entry]}
 
 
 def build_jsonld(linkset: dict[str, Any]) -> dict[str, Any]:

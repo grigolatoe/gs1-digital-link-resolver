@@ -84,18 +84,24 @@ async def resolve(path: str, request: Request) -> Response:
     accept = request.headers.get("accept", "")
     chosen = select_media_type(accept)
 
+    router = get_router()
+    validation = router.validator.validate(parsed, target).as_dict()
+    # Drop validation entirely when the validator is a no-op so we don't
+    # clutter responses for operators who haven't opted in.
+    validation_payload = validation if validation.get("profile") else None
+
+    anchor = str(request.url)
+    linkset = build_linkset(
+        anchor=anchor,
+        links=link_types,
+        requested_link_type=requested_lt,
+        validation=validation_payload,
+    )
+
     if chosen == "text/html":
-        # Default-link-aware redirect: prefer the explicit linkType= filter,
-        # otherwise the route target.
-        anchor = str(request.url)
-        linkset = build_linkset(anchor=anchor, links=link_types, requested_link_type=requested_lt)
         href = default_link_href(linkset) or target
         return RedirectResponse(url=href, status_code=302)
 
-    anchor = str(request.url)
-    linkset = build_linkset(anchor=anchor, links=link_types, requested_link_type=requested_lt)
-
     if chosen == "application/ld+json":
         return JSONResponse(build_jsonld(linkset), media_type="application/ld+json")
-    # both application/linkset+json and application/json get the RFC 9264 shape
     return JSONResponse(linkset, media_type=chosen)

@@ -8,6 +8,17 @@
 #       978 appears in DL URIs as "0978...". Prefix matches are literal
 #       string-startswith on the value as it appears in the URI.
 
+# Optional: pluggable DPP validator. Output appears as `gs1:validationStatus`
+# in the link-set response. Failures are advisory and never block resolution.
+#
+#   type: noop    — default, ships zero overhead
+#   type: smoke   — built-in URI-shape sanity check (no DPP fetch)
+#   type: schema  — JSON-Schema check against a CIRPASS-2 profile
+#                   requires schema_path: /path/to/profile.schema.json
+validator:
+  type: smoke
+  profile: smoke-builtin-v1
+
 resolvers:
 
   # Route by GTIN prefix (e.g. your brand's GS1 company prefix, padded)

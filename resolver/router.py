@@ -31,6 +31,7 @@ from typing import Optional
 import yaml
 
 from .parser import GS1ParseResult
+from .validator import NoOpValidator, Validator, load_validator
 
 
 @dataclass
@@ -83,6 +84,7 @@ class Route:
 class Router:
     def __init__(self, config_path: str | Path | None = None):
         self._routes: list[Route] = []
+        self.validator: Validator = NoOpValidator()
         if config_path is not None:
             self.load(config_path)
 
@@ -106,6 +108,7 @@ class Router:
                 target=rule["target"],
                 link_types=link_types,
             ))
+        self.validator = load_validator(config.get("validator"))
 
     def resolve(self, parsed: GS1ParseResult) -> Optional[tuple[str, list[LinkType]]]:
         """

@@ -57,8 +57,10 @@ The resolver parses the GTIN (`09780345418913`) and serial (`ABC123`), looks up 
 ```yaml
 # config/routes.yaml
 resolvers:
+  # Note: GTIN-14 in DL URIs is left-padded with zero, so a "books"
+  # company prefix of 978 appears in DL URIs as "0978..." — match accordingly.
   - match:
-      gtin_prefix: "978"          # match by GTIN prefix
+      gtin_prefix: "0978"
     target: "https://dpp.example.com/passport/{gtin}/{serial}"
     link_types:
       - rel: "gs1:pip"
@@ -68,10 +70,13 @@ resolvers:
       - rel: "gs1:verificationService"
         href: "https://dpp.example.com/api/verify/{gtin}/{serial}"
         type: "application/json"
+      - rel: "gs1:digitalProductPassport"
+        href: "https://dpp.example.com/dpp/{gtin}/{serial}.json"
+        type: "application/ld+json"
 
   - match:
-      gtin_prefix: "200"          # internal/private GTINs
-    target: "https://internal.example.com/dpp/{gtin}"
+      primary_ai: "8003"          # GRAI for returnable assets
+    target: "https://assets.example.com/grai/{8003}"
 
   - match: "*"                    # default fallback
     target: "https://id.gs1.org/01/{gtin}"
@@ -81,29 +86,42 @@ resolvers:
 
 | Accept header | Response |
 |---|---|
-| `text/html` (default) | 302 redirect to product page |
-| `application/ld+json` | 200 JSON-LD link set |
-| `application/json` | 200 JSON link set |
-| `*/*` | 200 JSON link set (GS1 Digital Link link resolver response format) |
+| `application/linkset+json` (default) | 200 RFC 9264 link-set with GS1 Web Vocabulary relation IRIs |
+| `application/ld+json` | 200 JSON-LD link-set with `gs1:` context binding |
+| `application/json` | 200 link-set in RFC 9264 shape |
+| `text/html` | 302 redirect to the link-set's default link |
+| `*/*` (or empty) | 200 RFC 9264 link-set |
 
-## CIRPASS-2 integration *(planned)*
+The `?linkType=` query parameter (per GS1 DL §6.4) narrows the response to a single relation when provided. Q-values are honoured.
 
-A future milestone will add optional DPP completeness validation via the CIRPASS-2 open-source validator. When enabled, the resolver will verify DPP data at resolve time and log validation results without blocking resolution.
+## DPP validator hook
+
+The resolver supports a pluggable validator that runs at resolve time and reports its outcome in the link-set response under `gs1:validationStatus`. Three implementations ship in-tree:
+
+- **`noop`** (default) — zero overhead, never flags anything
+- **`smoke`** — built-in URI-shape sanity checks (serial/lot character class, unknown AIs)
+- **`schema`** — JSON-Schema check against a CIRPASS-2 profile (e.g. textile or battery)
+
+Operators can also implement the `Validator` protocol themselves. Validation outcomes are advisory — failures are surfaced in the response but never block resolution. The full CIRPASS-2 reference validator integration lands in a follow-up milestone.
 
 ## Project status
 
-Early development — initial URI parser, routing engine, and HTTP service are implemented as a working scaffold. A funding application has been submitted to [NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation, EU-funded).
+Active development. A funding application has been submitted to [NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation, EU-funded).
 
 **Roadmap:**
 
 | | Milestone |
 |---|---|
-| ✅ | GS1 DL v1.2 URI parser — numeric AI and alpha-coded forms, GTIN-14 validation |
-| ✅ | Routing engine — declarative YAML config, prefix/regex matching, link types |
-| ✅ | HTTP service — FastAPI, content negotiation, Docker image |
-| 🔲 | Full ESPR/DPP profile — complete AI coverage, GS1 conformance test suite |
-| 🔲 | CIRPASS-2 validator integration |
-| 🔲 | Deployment documentation and operator guide |
+| ✅ | GS1 DL v1.2 URI parser — numeric AI and alpha-coded forms, full DL-compatible AI table |
+| ✅ | GTIN-14 mod-10 validation, canonical URI generation |
+| ✅ | Routing engine — declarative YAML, prefix/regex/primary-AI/has-qualifier/serial-allowlist clauses |
+| ✅ | RFC 9264 link-set responses with GS1 Web Vocabulary IRIs |
+| ✅ | Content negotiation with q-value handling |
+| ✅ | Pluggable validator interface (no-op, smoke, JSON-schema) |
+| ✅ | HTTP service — FastAPI, Docker image |
+| ✅ | Conformance test suite (86+ tests against GS1 DL §4.4–§4.6 + RFC 9264) |
+| 🔲 | CIRPASS-2 reference validator wire-up |
+| 🔲 | Deployment / operator guide |
 
 ## Standards references
 
