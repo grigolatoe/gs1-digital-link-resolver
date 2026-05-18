@@ -121,7 +121,7 @@ Releases are cut from `main` once CI is green:
 
 ```bash
 # Bump version in pyproject.toml
-# Update CHANGELOG.md (when introduced)
+# Move the [Unreleased] section in CHANGELOG.md to a new [v0.x.y] block
 git tag -a v0.x.y -m "v0.x.y — short summary"
 git push origin v0.x.y
 ```

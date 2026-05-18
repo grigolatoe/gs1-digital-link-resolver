@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gs1-digital-link-resolver"
-version = "0.1.0"
+version = "0.2.0"
 description = "Open GS1 Digital Link Resolver for EU Digital Product Passports"
 readme = "README.md"
 license = {text = "Apache-2.0"}
