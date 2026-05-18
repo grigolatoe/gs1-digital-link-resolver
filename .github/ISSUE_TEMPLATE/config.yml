@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: mailto:security@grigolato.it
+    about: Please do not file security reports as public issues. Email us instead.
+  - name: GS1 Digital Link standard
+    url: https://www.gs1.org/standards/gs1-digital-link
+    about: The standard this resolver implements.
+  - name: CIRPASS-2 Community of Practice
+    url: https://cirpass-2.eu
+    about: EU DPP standards and implementer network.
