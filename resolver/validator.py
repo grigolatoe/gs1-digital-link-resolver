@@ -39,8 +39,9 @@ from .parser import GS1ParseResult
 @dataclass
 class ValidationResult:
     """Outcome of a validator run for a single resolved URI."""
+
     ok: bool
-    profile: str = ""              # e.g. "cirpass2-textile-2026"
+    profile: str = ""  # e.g. "cirpass2-textile-2026"
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -57,11 +58,11 @@ class ValidationResult:
 class Validator(Protocol):
     """Interface every validator implementation must satisfy."""
 
-    def validate(self, parsed: GS1ParseResult, target_url: str) -> ValidationResult:
-        ...
+    def validate(self, parsed: GS1ParseResult, target_url: str) -> ValidationResult: ...
 
 
 # --- Default: never flags anything ------------------------------------------
+
 
 class NoOpValidator:
     """The default. Allows the resolver to ship without any validation overhead."""
@@ -73,6 +74,7 @@ class NoOpValidator:
 
 
 # --- Lightweight built-in: pattern-based smoke checks -----------------------
+
 
 @dataclass
 class SmokeValidator:
@@ -86,6 +88,7 @@ class SmokeValidator:
       - Serial number length and character class (when present)
       - Lot/batch length (when present)
     """
+
     profile: str = "smoke-builtin-v1"
     serial_pattern: re.Pattern[str] = field(
         default_factory=lambda: re.compile(r"^[A-Za-z0-9_\-.:/]{1,50}$")
@@ -128,6 +131,7 @@ class SmokeValidator:
 
 # --- Optional: JSON-Schema validation against a CIRPASS-2 profile ----------
 
+
 @dataclass
 class SchemaValidator:
     """
@@ -140,6 +144,7 @@ class SchemaValidator:
     installed `jsonschema`, the validator emits a one-time warning and
     falls back to a no-op.
     """
+
     schema_path: str | Path
     profile: str = "cirpass2-custom"
 
@@ -148,6 +153,7 @@ class SchemaValidator:
             self._schema = json.load(f)
         try:
             import jsonschema  # noqa: F401
+
             self._jsonschema_available = True
         except ImportError:
             self._jsonschema_available = False
@@ -168,6 +174,7 @@ class SchemaValidator:
 
 
 # --- Loader -----------------------------------------------------------------
+
 
 def load_validator(config: dict[str, Any] | None) -> Validator:
     """

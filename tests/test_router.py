@@ -5,10 +5,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-import pytest
-
 from resolver.parser import parse
-from resolver.router import LinkType, Route, Router
+from resolver.router import Route, Router
 
 
 def _write_yaml(tmp_path: Path, content: str) -> Path:
@@ -18,6 +16,7 @@ def _write_yaml(tmp_path: Path, content: str) -> Path:
 
 
 # --- Match clauses ----------------------------------------------------------
+
 
 class TestMatchClauses:
     def test_wildcard_matches_anything(self):
@@ -61,22 +60,26 @@ class TestMatchClauses:
             target="x",
         )
         assert r.matches(parse("/01/02000000000017/21/SER"))
-        assert not r.matches(parse("/01/02000000000017"))               # no serial
-        assert not r.matches(parse("/01/09780345418913/21/SER"))        # wrong prefix
+        assert not r.matches(parse("/01/02000000000017"))  # no serial
+        assert not r.matches(parse("/01/09780345418913/21/SER"))  # wrong prefix
 
 
 # --- YAML loading + routing -------------------------------------------------
 
+
 class TestRouterFromYaml:
     def test_first_match_wins(self, tmp_path):
-        cfg = _write_yaml(tmp_path, """
+        cfg = _write_yaml(
+            tmp_path,
+            """
             resolvers:
               - match:
                   gtin_prefix: "0978"
                 target: "https://books.test/{gtin}"
               - match: "*"
                 target: "https://default.test/{gtin}"
-        """)
+        """,
+        )
         router = Router(cfg)
 
         target, _ = router.resolve(parse("/01/09780345418913"))
@@ -86,7 +89,9 @@ class TestRouterFromYaml:
         assert target == "https://default.test/02000000000017"
 
     def test_link_type_template_substitution(self, tmp_path):
-        cfg = _write_yaml(tmp_path, """
+        cfg = _write_yaml(
+            tmp_path,
+            """
             resolvers:
               - match: "*"
                 target: "https://dpp.test/p/{gtin}/{serial}"
@@ -97,7 +102,8 @@ class TestRouterFromYaml:
                   - rel: "gs1:verificationService"
                     href: "https://dpp.test/api/verify/{gtin}/{serial}"
                     type: "application/json"
-        """)
+        """,
+        )
         router = Router(cfg)
         _, links = router.resolve(parse("/01/09780345418913/21/SER01"))
         pip = next(lt for lt in links if lt.rel == "gs1:pip")
@@ -108,36 +114,45 @@ class TestRouterFromYaml:
         assert ver.type == "application/json"
 
     def test_no_match_returns_none(self, tmp_path):
-        cfg = _write_yaml(tmp_path, """
+        cfg = _write_yaml(
+            tmp_path,
+            """
             resolvers:
               - match:
                   gtin_prefix: "978"
                 target: "https://x/{gtin}"
-        """)
+        """,
+        )
         router = Router(cfg)
         assert router.resolve(parse("/01/02000000000017")) is None
 
     def test_grai_routing(self, tmp_path):
-        cfg = _write_yaml(tmp_path, """
+        cfg = _write_yaml(
+            tmp_path,
+            """
             resolvers:
               - match:
                   primary_ai: "8003"
                 target: "https://assets.test/grai/{8003}"
-        """)
+        """,
+        )
         router = Router(cfg)
         target, _ = router.resolve(parse("/8003/095555550000200"))
         assert target == "https://assets.test/grai/095555550000200"
 
     def test_serial_allowlist_route(self, tmp_path):
         # Useful for demo / test products that should bypass the live DPP.
-        cfg = _write_yaml(tmp_path, """
+        cfg = _write_yaml(
+            tmp_path,
+            """
             resolvers:
               - match:
                   serial_in: ["DEMO-A", "DEMO-B"]
                 target: "https://demo.test/{gtin}/{serial}"
               - match: "*"
                 target: "https://prod.test/{gtin}/{serial}"
-        """)
+        """,
+        )
         router = Router(cfg)
         t, _ = router.resolve(parse("/01/09780345418913/21/DEMO-A"))
         assert t.startswith("https://demo.test/")

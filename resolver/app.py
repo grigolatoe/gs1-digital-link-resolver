@@ -27,7 +27,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from .linkset import build_jsonld, build_linkset, default_link_href
 from .negotiate import select_media_type

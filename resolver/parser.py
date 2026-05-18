@@ -20,8 +20,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
-from urllib.parse import urlparse, parse_qs, quote
+from urllib.parse import parse_qs, quote, urlparse
 
 from .ai_table import (
     AI_TO_NAME,
@@ -29,7 +28,6 @@ from .ai_table import (
     NAME_TO_AI,
     PRIMARY_AIS,
     QUALIFIER_ORDER,
-    fixed_length,
     is_known,
 )
 
@@ -41,33 +39,34 @@ _AI_PATH_RE = re.compile(r"/(\d{2,4})/([^/?#]+)")
 @dataclass
 class GS1ParseResult:
     """Result of parsing a GS1 Digital Link URI."""
-    primary_ai: str = ""           # e.g. "01"
-    primary_value: str = ""        # e.g. "09780345418913"
+
+    primary_ai: str = ""  # e.g. "01"
+    primary_value: str = ""  # e.g. "09780345418913"
     qualifiers: dict[str, str] = field(default_factory=dict)
     attributes: dict[str, str] = field(default_factory=dict)
     query_params: dict[str, list[str]] = field(default_factory=dict)
-    link_type: Optional[str] = None
+    link_type: str | None = None
     unknown_ais: list[tuple[str, str]] = field(default_factory=list)
 
     # ---- convenience accessors --------------------------------------------
     @property
-    def gtin(self) -> Optional[str]:
+    def gtin(self) -> str | None:
         return self.primary_value if self.primary_ai == "01" else None
 
     @property
-    def serial_number(self) -> Optional[str]:
+    def serial_number(self) -> str | None:
         return self.qualifiers.get("21")
 
     @property
-    def batch_lot(self) -> Optional[str]:
+    def batch_lot(self) -> str | None:
         return self.qualifiers.get("10")
 
     @property
-    def cpv(self) -> Optional[str]:
+    def cpv(self) -> str | None:
         return self.qualifiers.get("22")
 
     @property
-    def expiry_date(self) -> Optional[str]:
+    def expiry_date(self) -> str | None:
         return self.attributes.get("17")
 
     def as_dict(self) -> dict[str, str]:
@@ -82,7 +81,7 @@ class GS1ParseResult:
             out[ai] = value
         # Convenience aliases used in user-supplied templates
         out.setdefault("serial", self.qualifiers.get("21", ""))
-        out.setdefault("batch",  self.qualifiers.get("10", ""))
+        out.setdefault("batch", self.qualifiers.get("10", ""))
         out.setdefault("expiry", self.attributes.get("17", ""))
         return out
 
@@ -151,12 +150,13 @@ def _normalise_alpha(path: str) -> str:
         if i % 2 == 1:  # AI position
             ai = NAME_TO_AI.get(token.lower())
             out.append(ai if ai else token)
-        else:           # value position — leave verbatim
+        else:  # value position — leave verbatim
             out.append(token)
     return "/".join(out)
 
 
 # --- GTIN check digit -------------------------------------------------------
+
 
 def validate_gtin14(gtin: str) -> bool:
     """
@@ -183,6 +183,7 @@ def pad_gtin_to_14(gtin: str) -> str:
 
 
 # --- Canonical URI generation ----------------------------------------------
+
 
 def canonicalise(parsed: GS1ParseResult, host: str = "id.gs1.org") -> str:
     """

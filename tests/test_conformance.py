@@ -19,8 +19,8 @@ from resolver.parser import (
     validate_gtin14,
 )
 
-
 # --- §4.4 — primary key + qualifier ordering --------------------------------
+
 
 class TestPrimaryAndQualifiers:
     def test_gtin_only(self):
@@ -62,6 +62,7 @@ class TestPrimaryAndQualifiers:
 
 # --- §4.5 — alpha-coded forms -----------------------------------------------
 
+
 class TestAlphaCoded:
     def test_basic_alpha_form(self):
         r = parse("/gtin/09780345418913/ser/ABC123")
@@ -84,6 +85,7 @@ class TestAlphaCoded:
 
 
 # --- §4.6 — canonical URI generation ----------------------------------------
+
 
 class TestCanonical:
     def test_canonical_orders_qualifiers_for_gtin(self):
@@ -109,13 +111,17 @@ class TestCanonical:
 
 # --- GTIN-14 mod-10 check digit (GS1 General Specs §7.9) --------------------
 
+
 class TestGtin14:
-    @pytest.mark.parametrize("gtin", [
-        "09780345418913",  # ISBN form
-        "00012345678905",  # GTIN-12 padded
-        "09506000134369",  # GS1-published example
-        "00614141999996",  # GS1-published example
-    ])
+    @pytest.mark.parametrize(
+        "gtin",
+        [
+            "09780345418913",  # ISBN form
+            "00012345678905",  # GTIN-12 padded
+            "09506000134369",  # GS1-published example
+            "00614141999996",  # GS1-published example
+        ],
+    )
     def test_valid_gtin14_examples(self, gtin):
         assert validate_gtin14(gtin) is True
 
@@ -138,6 +144,7 @@ class TestGtin14:
 
 # --- Resolver-side malformed-input refusals ---------------------------------
 
+
 class TestMalformedInput:
     def test_empty_path_raises(self):
         with pytest.raises(ValueError):
@@ -158,6 +165,7 @@ class TestMalformedInput:
 
 
 # --- Worked example from GS1 DL standard §A.1 -------------------------------
+
 
 def test_gs1_dl_worked_example():
     """

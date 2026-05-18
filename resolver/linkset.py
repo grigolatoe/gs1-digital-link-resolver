@@ -29,22 +29,22 @@ GS1_VOC_PREFIX = "gs1:"
 
 # Built-in short-form expansions for the most common link types
 SHORT_TO_VOC: dict[str, str] = {
-    "gs1:pip":                  GS1_VOC + "pip",
-    "gs1:productInfo":          GS1_VOC + "productInfo",
-    "gs1:defaultLink":          GS1_VOC + "defaultLink",
-    "gs1:certificationInfo":    GS1_VOC + "certificationInfo",
-    "gs1:epil":                 GS1_VOC + "epil",  # extended-packaging info link
-    "gs1:hasRetailers":         GS1_VOC + "hasRetailers",
-    "gs1:productSupportLink":   GS1_VOC + "productSupportLink",
-    "gs1:recipeInfo":           GS1_VOC + "recipeInfo",
-    "gs1:safetyDataSheet":      GS1_VOC + "safetyDataSheet",
-    "gs1:safetyInfo":           GS1_VOC + "safetyInfo",
-    "gs1:serviceInfo":          GS1_VOC + "serviceInfo",
-    "gs1:smartLabel":           GS1_VOC + "smartLabel",
-    "gs1:sustainabilityInfo":   GS1_VOC + "sustainabilityInfo",
-    "gs1:traceability":         GS1_VOC + "traceability",
-    "gs1:tutorial":             GS1_VOC + "tutorial",
-    "gs1:verificationService":  GS1_VOC + "verificationService",
+    "gs1:pip": GS1_VOC + "pip",
+    "gs1:productInfo": GS1_VOC + "productInfo",
+    "gs1:defaultLink": GS1_VOC + "defaultLink",
+    "gs1:certificationInfo": GS1_VOC + "certificationInfo",
+    "gs1:epil": GS1_VOC + "epil",  # extended-packaging info link
+    "gs1:hasRetailers": GS1_VOC + "hasRetailers",
+    "gs1:productSupportLink": GS1_VOC + "productSupportLink",
+    "gs1:recipeInfo": GS1_VOC + "recipeInfo",
+    "gs1:safetyDataSheet": GS1_VOC + "safetyDataSheet",
+    "gs1:safetyInfo": GS1_VOC + "safetyInfo",
+    "gs1:serviceInfo": GS1_VOC + "serviceInfo",
+    "gs1:smartLabel": GS1_VOC + "smartLabel",
+    "gs1:sustainabilityInfo": GS1_VOC + "sustainabilityInfo",
+    "gs1:traceability": GS1_VOC + "traceability",
+    "gs1:tutorial": GS1_VOC + "tutorial",
+    "gs1:verificationService": GS1_VOC + "verificationService",
     # ESPR / DPP-specific (proposed extensions, used by CIRPASS-2 CoP)
     "gs1:digitalProductPassport": GS1_VOC + "digitalProductPassport",
 }
@@ -57,7 +57,7 @@ def expand_rel(rel: str) -> str:
     if rel in SHORT_TO_VOC:
         return SHORT_TO_VOC[rel]
     if rel.startswith(GS1_VOC_PREFIX):
-        return GS1_VOC + rel[len(GS1_VOC_PREFIX):]
+        return GS1_VOC + rel[len(GS1_VOC_PREFIX) :]
     return rel  # leave bare relation tokens (rfc8288 well-known names) alone
 
 

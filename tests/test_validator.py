@@ -12,8 +12,8 @@ from resolver.router import LinkType, Router
 from resolver.validator import (
     NoOpValidator,
     SmokeValidator,
-    Validator,
     ValidationResult,
+    Validator,
     load_validator,
 )
 
@@ -47,7 +47,7 @@ class TestSmoke:
         v = SmokeValidator()
         # contains '!' which is outside the recommended GS1 charset
         result = v.validate(parse("/01/09780345418913/21/HEY!"), "https://x.test")
-        assert result.ok          # warnings don't make it not-ok
+        assert result.ok  # warnings don't make it not-ok
         assert any("Serial" in w for w in result.warnings)
 
     def test_smoke_warns_on_long_lot(self):
@@ -88,14 +88,16 @@ class TestRouterIntegration:
 
     def test_router_loads_smoke_from_yaml(self, tmp_path):
         cfg = tmp_path / "routes.yaml"
-        cfg.write_text(textwrap.dedent("""
+        cfg.write_text(
+            textwrap.dedent("""
             validator:
               type: smoke
               profile: integration-smoke
             resolvers:
               - match: "*"
                 target: "https://x.test/{gtin}"
-        """))
+        """)
+        )
         router = Router(cfg)
         assert isinstance(router.validator, SmokeValidator)
         assert router.validator.profile == "integration-smoke"

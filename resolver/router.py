@@ -26,7 +26,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -40,9 +39,9 @@ class LinkType:
     href: str
     type: str = "text/html"
     title: str = ""
-    hreflang: Optional[str] = None
+    hreflang: str | None = None
 
-    def resolve(self, ctx: dict[str, str]) -> "LinkType":
+    def resolve(self, ctx: dict[str, str]) -> LinkType:
         return LinkType(
             rel=self.rel,
             href=_fill(self.href, ctx),
@@ -103,14 +102,16 @@ class Router:
                 )
                 for lt in rule.get("link_types", [])
             ]
-            self._routes.append(Route(
-                match=rule.get("match", {}),
-                target=rule["target"],
-                link_types=link_types,
-            ))
+            self._routes.append(
+                Route(
+                    match=rule.get("match", {}),
+                    target=rule["target"],
+                    link_types=link_types,
+                )
+            )
         self.validator = load_validator(config.get("validator"))
 
-    def resolve(self, parsed: GS1ParseResult) -> Optional[tuple[str, list[LinkType]]]:
+    def resolve(self, parsed: GS1ParseResult) -> tuple[str, list[LinkType]] | None:
         """
         Find the first matching route for the parsed GS1 URI.
 

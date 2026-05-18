@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from resolver.linkset import (
     GS1_VOC,
     SHORT_TO_VOC,
@@ -73,7 +71,9 @@ class TestLinkSet:
             anchor="https://x.test/01/0",
             links=[
                 _link("gs1:pip", "https://dpp.test/p"),
-                _link("gs1:verificationService", "https://dpp.test/verify", ctype="application/json"),
+                _link(
+                    "gs1:verificationService", "https://dpp.test/verify", ctype="application/json"
+                ),
             ],
             requested_link_type="gs1:verificationService",
         )

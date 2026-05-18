@@ -22,8 +22,21 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "httpx"]
+dev = ["pytest", "httpx", "ruff==0.6.9"]
 
 [project.urls]
 Homepage = "https://github.com/grigolatoe/gs1-digital-link-resolver"
 "Bug Tracker" = "https://github.com/grigolatoe/gs1-digital-link-resolver/issues"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "W"]
+ignore = ["E501"]  # line-length handled by formatter
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

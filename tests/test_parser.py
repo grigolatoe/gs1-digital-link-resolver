@@ -1,6 +1,7 @@
 """Tests for GS1 Digital Link URI parser."""
 
 import pytest
+
 from resolver.parser import parse, validate_gtin14
 
 
