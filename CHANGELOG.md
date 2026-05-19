@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.0] — 2026-05-18
+## [0.2.0] — "Gift" — 2026-05-18
 
 Substantial expansion from the initial scaffold: full GS1 Digital Link v1.2
 compliance, RFC 9264 link-set responses, pluggable DPP validator interface,
