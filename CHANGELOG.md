@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Container image published** to `ghcr.io/grigolatoe/gs1-digital-link-resolver`
+  at tags `0.2.0` and `latest`, both pointing at the v0.2.0 source. OCI image
+  labels (`org.opencontainers.image.source`, `description`, `licenses`,
+  `version`) link the package back to this repository on the GitHub UI.
+- **PGP-signed release manifest** — `SIGNING.md` documents the verification
+  procedure; `SIGNATURES-v0.2.0.txt` + `SIGNATURES-v0.2.0.txt.asc` are
+  attached to the v0.2.0 GitHub Release. The signing key is
+  `47DE71F021C986123851E8AD65A8E29C92A63D38` (Ed25519), the same key
+  attached to the NGI Zero Commons Fund application.
+- **HTTP integration tests** (`tests/test_app_integration.py`) — nine
+  end-to-end tests exercising the FastAPI app against the shipped example
+  config: content-negotiation matrix (`application/linkset+json`,
+  `application/ld+json`, HTML 302), `?linkType=` filtering, GTIN mod-10
+  boundary, wildcard fallback to `id.gs1.org`, malformed-path refusal, and
+  `gs1:validationStatus` sidecar surfacing. Total: 95/95 tests pass.
+
 ## [0.2.0] — "Gift" — 2026-05-18
 
 Substantial expansion from the initial scaffold: full GS1 Digital Link v1.2

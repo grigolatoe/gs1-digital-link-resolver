@@ -36,6 +36,32 @@ This project removes that barrier.
 
 ## Quick start
 
+The release image ships on the GitHub Container Registry:
+
+```bash
+docker run -p 8080:8080 \
+  ghcr.io/grigolatoe/gs1-digital-link-resolver:0.2.0
+```
+
+That binds the resolver on `localhost:8080` with the example config bundled
+into the image. To bring your own routes, mount over `/app/config/routes.yaml`:
+
+```bash
+docker run -p 8080:8080 \
+  -v ./config/routes.yaml:/app/config/routes.yaml \
+  ghcr.io/grigolatoe/gs1-digital-link-resolver:0.2.0
+```
+
+Then visit:
+
+```
+http://localhost:8080/01/09780345418913/21/ABC123
+```
+
+The resolver parses the GTIN (`09780345418913`) and serial (`ABC123`), looks up the routing rule, and returns an RFC 9264 link-set (or redirects to the default link if the client asked for HTML).
+
+### Build from source instead
+
 ```bash
 git clone https://github.com/grigolatoe/gs1-digital-link-resolver.git
 cd gs1-digital-link-resolver
@@ -44,13 +70,20 @@ docker build -t gs1-resolver .
 docker run -p 8080:8080 -v ./config/routes.yaml:/app/config/routes.yaml gs1-resolver
 ```
 
-Then scan or visit:
+### Verify the published image
 
-```
-http://localhost:8080/01/09780345418913/21/ABC123
-```
+Every release is signed with a PGP key under the maintainer's direct
+control (the same key attached to the NLnet NGI Zero Commons Fund
+application). See **[SIGNING.md](SIGNING.md)** for the verification
+procedure; the short version is:
 
-The resolver parses the GTIN (`09780345418913`) and serial (`ABC123`), looks up the routing rule, and redirects to the configured DPP endpoint.
+```bash
+gpg --keyserver hkps://keys.openpgp.org --recv-keys 47DE71F021C986123851E8AD65A8E29C92A63D38
+gh release download v0.2.0 --repo grigolatoe/gs1-digital-link-resolver --pattern 'SIGNATURES-*'
+gpg --verify SIGNATURES-v0.2.0.txt.asc SIGNATURES-v0.2.0.txt
+docker pull ghcr.io/grigolatoe/gs1-digital-link-resolver:0.2.0
+# The digest reported by docker must match the one in SIGNATURES-v0.2.0.txt.
+```
 
 ## Configuration
 
