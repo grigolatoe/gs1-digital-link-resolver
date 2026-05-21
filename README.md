@@ -167,6 +167,16 @@ Active development. A funding application has been submitted to [NGI Zero Common
 
 Issues and PRs welcome. This project aims to serve the [CIRPASS-2 Community of Practice](https://cirpass-2.eu) — a 500+ member EU network of DPP platform providers, brands, and standards bodies — and the broader ESPR compliance ecosystem.
 
+## Who built this
+
+This resolver is maintained by **[Grigolato.IT](https://www.grigolato.it)** (Almere, Netherlands, KvK 97060658) — the company behind **[OrigoVero](https://www.origovero.com)**, the Digital Product Passport platform with patent-pending per-unit authenticity, multi-actor on-chain custody, and dual-factor QR + NFC verification.
+
+OrigoVero uses this resolver in production to serve GS1 Digital Link URIs across multiple EU regulatory streams (wine, batteries, textiles, toys, packaging, construction). The resolver is released independently under Apache 2.0 so any DPP platform, brand, or compliance authority can run it without commercial dependency.
+
+- OrigoVero: <https://www.origovero.com>
+- CIRPASS-2 Community of Practice member (Grigolato.IT, since March 2026)
+- Patent: NL provisional 4001289 (P105534NL) filed 2026-03-19 via AOMB — covers the per-unit authentication method only; this resolver and its codebase are not patented.
+
 ## Licence
 
 Apache 2.0 — see [LICENSE](LICENSE).
