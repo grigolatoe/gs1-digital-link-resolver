@@ -108,6 +108,18 @@ class TestCanonical:
         r = parse("/01/09780345418913")
         assert canonicalise(r, host="dpp.example.com").startswith("https://dpp.example.com/01/")
 
+    def test_canonical_pads_short_gtin_to_14(self):
+        # GS1 DL §4.6: a GTIN is canonically GTIN-14. A GTIN-13 primary value
+        # must be left-padded with a leading zero in the canonical URI.
+        r = parse("/01/9780345418913")  # 13 digits as supplied
+        assert r.primary_value == "9780345418913"  # parse stays verbatim
+        assert canonicalise(r) == "https://id.gs1.org/01/09780345418913"
+
+    def test_canonical_does_not_pad_non_gtin_primary(self):
+        # Padding is GTIN-specific; a GRAI primary is emitted verbatim.
+        r = parse("/8003/095555550000200")
+        assert canonicalise(r) == "https://id.gs1.org/8003/095555550000200"
+
 
 # --- GTIN-14 mod-10 check digit (GS1 General Specs §7.9) --------------------
 

@@ -192,6 +192,8 @@ def canonicalise(parsed: GS1ParseResult, host: str = "id.gs1.org") -> str:
     Canonical form (per GS1 DL §4.6):
       - host: id.gs1.org by default
       - primary key first
+      - a GTIN primary key (AI 01) expressed as GTIN-14 (shorter GTINs are
+        left-padded with zeros, per the same rule the parser documents)
       - qualifiers in the order defined for the primary key
       - attributes in numeric-AI order
       - query parameters dropped (canonical form is path-only)
@@ -199,7 +201,13 @@ def canonicalise(parsed: GS1ParseResult, host: str = "id.gs1.org") -> str:
     if not parsed.primary_ai:
         raise ValueError("Cannot canonicalise: no primary key set")
 
-    parts = [f"/{parsed.primary_ai}/{quote(parsed.primary_value, safe='')}"]
+    # GS1 DL §4.6: a GTIN is canonically a GTIN-14. pad_gtin_to_14 is
+    # idempotent on values already 14 long and leaves non-GTIN primaries alone.
+    primary_value = parsed.primary_value
+    if parsed.primary_ai == "01":
+        primary_value = pad_gtin_to_14(primary_value)
+
+    parts = [f"/{parsed.primary_ai}/{quote(primary_value, safe='')}"]
 
     order = QUALIFIER_ORDER.get(parsed.primary_ai, ())
     seen: set[str] = set()

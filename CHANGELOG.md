@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   boundary, wildcard fallback to `id.gs1.org`, malformed-path refusal, and
   `gs1:validationStatus` sidecar surfacing. Total: 95/95 tests pass.
 
+### Fixed
+
+- **Canonical URI now pads a GTIN primary key to GTIN-14** (GS1 DL §4.6).
+  `canonicalise()` previously emitted the GTIN exactly as supplied, so a
+  GTIN-13 input produced a 13-digit canonical URI. It now left-pads via the
+  existing `pad_gtin_to_14()` helper (idempotent on 14-digit GTINs; non-GTIN
+  primaries such as GRAI are unaffected). Two conformance vectors added.
+  Total: 97/97 tests pass.
+
 ## [0.2.0] — "Gift" — 2026-05-18
 
 Substantial expansion from the initial scaffold: full GS1 Digital Link v1.2
