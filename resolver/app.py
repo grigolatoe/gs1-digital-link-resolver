@@ -39,7 +39,7 @@ CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", "/app/config/routes.yaml"))
 app = FastAPI(
     title="GS1 Digital Link Resolver",
     description="Open-source resolver for EU Digital Product Passports",
-    version="0.2.0",
+    version="0.3.0",
     license_info={"name": "Apache 2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0"},
 )
 
