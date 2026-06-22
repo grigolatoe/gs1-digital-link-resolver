@@ -3,7 +3,7 @@ FROM python:3.12-slim
 LABEL org.opencontainers.image.source="https://github.com/grigolatoe/gs1-digital-link-resolver"
 LABEL org.opencontainers.image.description="Open-source GS1 Digital Link resolver for EU Digital Product Passports"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.version="0.2.0"
+LABEL org.opencontainers.image.version="0.3.0"
 
 WORKDIR /app
 
