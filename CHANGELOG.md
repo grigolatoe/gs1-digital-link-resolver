@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`HttpValidator`** — the `http` validator type that delegates DPP
+  validation to an external CIRPASS-2 validator service (POSTs the resolved
+  URI + target URL to a configured `endpoint`, maps the JSON verdict back).
+  Previously referenced in docs but not implemented; now shipped with the
+  `type: http` loader path. Advisory-only like every validator: transport
+  failures, non-2xx responses, unparseable bodies, or a missing `httpx`
+  install all degrade to a soft warning and never block resolution.
+  Adds 8 tests (97 → 105). First step of NGI Zero Commons Fund Milestone 3.
+
 ## [0.2.1] — 2026-06-22
 
 ### Added

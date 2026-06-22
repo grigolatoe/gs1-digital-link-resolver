@@ -173,6 +173,86 @@ class SchemaValidator:
         return ValidationResult(ok=True, profile=self.profile)
 
 
+# --- Optional: delegate to an external CIRPASS-2 validator endpoint ---------
+
+
+@dataclass
+class HttpValidator:
+    """
+    Delegate validation to an external CIRPASS-2 validator service.
+
+    POSTs a small JSON envelope describing the resolved URI and the target
+    DPP URL to a configured endpoint, then maps the JSON verdict back into a
+    ``ValidationResult``. Like every validator here it is *advisory only*:
+    any transport failure, timeout, non-2xx response, or unparseable body
+    degrades to a soft warning with ``ok=True`` — it never blocks resolution.
+
+    To keep the core package slim, ``httpx`` is imported lazily; if it is not
+    installed the validator emits a one-time warning and falls back to a no-op
+    (mirroring ``SchemaValidator``'s ``jsonschema`` handling).
+
+    Request envelope (POST, ``application/json``)::
+
+        {
+          "primary":    {"ai": "01", "value": "09780345418913"},
+          "qualifiers": {"21": "ABC123"},
+          "attributes": {"17": "251231"},
+          "target_url": "https://dpp.example.com/passport/..."
+        }
+
+    Expected response (lenient — every field is optional and defaults safely)::
+
+        {"ok": true, "errors": [], "warnings": [], "profile": "cirpass2-textile-2026"}
+    """
+
+    endpoint: str
+    profile: str = "cirpass2-http"
+    timeout: float = 5.0
+
+    def __post_init__(self) -> None:
+        try:
+            import httpx  # noqa: F401
+
+            self._httpx_available = True
+        except ImportError:
+            self._httpx_available = False
+
+    def validate(self, parsed: GS1ParseResult, target_url: str) -> ValidationResult:
+        if not self._httpx_available:
+            return ValidationResult(
+                ok=True,
+                profile=self.profile,
+                warnings=["httpx package not installed; HttpValidator disabled."],
+            )
+        import httpx
+
+        payload = {
+            "primary": {"ai": parsed.primary_ai, "value": parsed.primary_value},
+            "qualifiers": parsed.qualifiers,
+            "attributes": parsed.attributes,
+            "target_url": target_url,
+        }
+        try:
+            resp = httpx.post(self.endpoint, json=payload, timeout=self.timeout)
+            resp.raise_for_status()
+            data = resp.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            return ValidationResult(
+                ok=True,
+                profile=self.profile,
+                warnings=[
+                    f"CIRPASS-2 validator endpoint unavailable "
+                    f"({exc.__class__.__name__}); validation skipped."
+                ],
+            )
+        return ValidationResult(
+            ok=bool(data.get("ok", True)),
+            profile=data.get("profile") or self.profile,
+            errors=list(data.get("errors") or []),
+            warnings=list(data.get("warnings") or []),
+        )
+
+
 # --- Loader -----------------------------------------------------------------
 
 
@@ -181,10 +261,13 @@ def load_validator(config: dict[str, Any] | None) -> Validator:
     Build a validator from a YAML config block. Shape:
 
       validator:
-        type: noop|smoke|schema
+        type: noop|smoke|schema|http
         # for type=schema:
         schema_path: /path/to/cirpass2-textile.schema.json
         profile: cirpass2-textile-2026
+        # for type=http:
+        endpoint: https://validator.example.com/cirpass2/validate
+        timeout: 5.0
 
     Falls back to NoOpValidator when no config is provided.
     """
@@ -202,5 +285,14 @@ def load_validator(config: dict[str, Any] | None) -> Validator:
         return SchemaValidator(
             schema_path=schema_path,
             profile=config.get("profile", "cirpass2-custom"),
+        )
+    if kind == "http":
+        endpoint = config.get("endpoint")
+        if not endpoint:
+            raise ValueError("HttpValidator requires an endpoint")
+        return HttpValidator(
+            endpoint=endpoint,
+            profile=config.get("profile", "cirpass2-http"),
+            timeout=config.get("timeout", 5.0),
         )
     raise ValueError(f"Unknown validator type: {kind!r}")

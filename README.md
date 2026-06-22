@@ -129,13 +129,23 @@ The `?linkType=` query parameter (per GS1 DL §6.4) narrows the response to a si
 
 ## DPP validator hook
 
-The resolver supports a pluggable validator that runs at resolve time and reports its outcome in the link-set response under `gs1:validationStatus`. Three implementations ship in-tree:
+The resolver supports a pluggable validator that runs at resolve time and reports its outcome in the link-set response under `gs1:validationStatus`. Four implementations ship in-tree:
 
 - **`noop`** (default) — zero overhead, never flags anything
 - **`smoke`** — built-in URI-shape sanity checks (serial/lot character class, unknown AIs)
 - **`schema`** — JSON-Schema check against a CIRPASS-2 profile (e.g. textile or battery)
+- **`http`** — delegate to an external CIRPASS-2 validator service: POSTs the resolved URI + target DPP URL to a configured `endpoint` and maps the verdict back
 
-Operators can also implement the `Validator` protocol themselves. Validation outcomes are advisory — failures are surfaced in the response but never block resolution. The full CIRPASS-2 reference validator integration lands in a follow-up milestone.
+Configure via the `validator:` block in `routes.yaml`, e.g. for the HTTP delegate:
+
+```yaml
+validator:
+  type: http
+  endpoint: https://validator.example.com/cirpass2/validate
+  timeout: 5.0
+```
+
+Operators can also implement the `Validator` protocol themselves. Validation outcomes are advisory — failures are surfaced in the response but never block resolution; any validator-side error (unreachable endpoint, unparseable body, missing optional dependency) degrades to a soft warning. The bundled CIRPASS-2 reference profiles for `schema` land in a follow-up milestone.
 
 ## Project status
 
