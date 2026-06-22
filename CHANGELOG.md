@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fail-fast config validation** — `Router` now validates `routes.yaml`
+  structure at load time and raises `ConfigError` with an actionable message
+  (which resolver / link-type, what's wrong) instead of failing confusingly at
+  request time. The service refuses to start on a malformed config. A
+  match-only config with no `*` fallback remains valid (resolves owned ranges,
+  404s otherwise).
+- **Input bound (DoS guard)** — the parser rejects URIs longer than
+  `MAX_URI_LENGTH` (2048) with a 400 before parsing, since the resolver accepts
+  arbitrary public request paths.
 - **Prometheus `/metrics` endpoint** — dependency-free text-format exposition:
   `gs1_resolver_requests_total{outcome}`, `gs1_resolver_validations_total{ok}`,
   a resolve-latency summary (`..._sum` / `..._count`), and

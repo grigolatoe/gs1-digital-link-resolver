@@ -2,7 +2,7 @@
 
 import pytest
 
-from resolver.parser import parse, validate_gtin14
+from resolver.parser import MAX_URI_LENGTH, parse, validate_gtin14
 
 
 def test_parse_numeric_ai_gtin_serial():
@@ -53,3 +53,17 @@ def test_validate_gtin14_wrong_length():
 
 def test_validate_gtin14_non_numeric():
     assert validate_gtin14("0978034541891X") is False
+
+
+def test_parse_rejects_oversized_uri():
+    """Input beyond MAX_URI_LENGTH is rejected before parsing (DoS guard)."""
+    oversized = "/01/09780345418913/21/" + ("A" * (MAX_URI_LENGTH + 1))
+    with pytest.raises(ValueError, match="maximum length"):
+        parse(oversized)
+
+
+def test_parse_accepts_uri_at_limit():
+    """A URI at exactly the limit still parses."""
+    serial = "A" * (MAX_URI_LENGTH - len("/01/09780345418913/21/"))
+    result = parse("/01/09780345418913/21/" + serial)
+    assert result.serial_number == serial

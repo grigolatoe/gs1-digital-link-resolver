@@ -5,14 +5,73 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from resolver.parser import parse
-from resolver.router import Route, Router
+from resolver.router import ConfigError, Route, Router
 
 
 def _write_yaml(tmp_path: Path, content: str) -> Path:
     p = tmp_path / "routes.yaml"
     p.write_text(textwrap.dedent(content))
     return p
+
+
+class TestConfigValidation:
+    """Router must fail fast with a clear error on a malformed config."""
+
+    def test_valid_config_loads(self, tmp_path):
+        cfg = _write_yaml(
+            tmp_path,
+            """
+            resolvers:
+              - match: "*"
+                target: "https://x.test/{gtin}"
+            """,
+        )
+        assert isinstance(Router(cfg), Router)
+
+    def test_missing_resolvers_raises(self, tmp_path):
+        cfg = _write_yaml(tmp_path, "validator:\n  type: noop\n")
+        with pytest.raises(ConfigError, match="resolvers"):
+            Router(cfg)
+
+    def test_empty_resolvers_raises(self, tmp_path):
+        cfg = _write_yaml(tmp_path, "resolvers: []\n")
+        with pytest.raises(ConfigError, match="non-empty"):
+            Router(cfg)
+
+    def test_resolver_without_target_raises(self, tmp_path):
+        cfg = _write_yaml(tmp_path, 'resolvers:\n  - match: "*"\n')
+        with pytest.raises(ConfigError, match="target"):
+            Router(cfg)
+
+    def test_link_type_without_rel_raises(self, tmp_path):
+        cfg = _write_yaml(
+            tmp_path,
+            """
+            resolvers:
+              - match: "*"
+                target: "https://x.test/{gtin}"
+                link_types:
+                  - href: "https://x.test/p"
+            """,
+        )
+        with pytest.raises(ConfigError, match="rel"):
+            Router(cfg)
+
+    def test_match_only_config_without_fallback_is_allowed(self, tmp_path):
+        """No fallback is a valid choice (resolve only owned ranges → 404 else)."""
+        cfg = _write_yaml(
+            tmp_path,
+            """
+            resolvers:
+              - match:
+                  gtin_prefix: "0978"
+                target: "https://x.test/{gtin}"
+            """,
+        )
+        assert Router(cfg).resolve(parse("/01/00012345678905")) is None
 
 
 # --- Match clauses ----------------------------------------------------------

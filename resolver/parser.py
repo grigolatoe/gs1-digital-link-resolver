@@ -86,6 +86,14 @@ class GS1ParseResult:
         return out
 
 
+# Upper bound on the input URI length. GS1 Digital Link URIs are short (a
+# primary key plus a handful of qualifiers/attributes); anything beyond this is
+# not a legitimate DL URI. The resolver is public infrastructure that accepts
+# arbitrary request paths, so we reject oversized input before parsing rather
+# than spend work on it.
+MAX_URI_LENGTH = 2048
+
+
 def parse(uri: str) -> GS1ParseResult:
     """
     Parse a GS1 Digital Link URI into its components.
@@ -93,8 +101,12 @@ def parse(uri: str) -> GS1ParseResult:
     Accepts both numeric AI form (/01/...) and alpha-coded form (/gtin/...).
     Strips the scheme and host — only the path and query string are parsed.
 
-    Raises ValueError if no recognised primary key is present in the path.
+    Raises ValueError if the URI exceeds MAX_URI_LENGTH or if no recognised
+    primary key is present in the path.
     """
+    if len(uri) > MAX_URI_LENGTH:
+        raise ValueError(f"URI exceeds maximum length of {MAX_URI_LENGTH} characters")
+
     parsed = urlparse(uri)
     path = parsed.path
     query = parse_qs(parsed.query, keep_blank_values=True)

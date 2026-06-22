@@ -33,6 +33,45 @@ from .parser import GS1ParseResult
 from .validator import NoOpValidator, Validator, load_validator
 
 
+class ConfigError(ValueError):
+    """Raised when routes.yaml is structurally invalid — fail fast at startup."""
+
+
+def _validate_config(config: object) -> dict:
+    """Validate the parsed routes.yaml shape, raising ConfigError with an
+    actionable message. The resolver must refuse to start on a broken config
+    rather than fail confusingly at request time."""
+    if not isinstance(config, dict):
+        raise ConfigError("config root must be a mapping (a YAML object)")
+
+    resolvers = config.get("resolvers")
+    if resolvers is None:
+        raise ConfigError("config must define a 'resolvers' list")
+    if not isinstance(resolvers, list) or not resolvers:
+        raise ConfigError("'resolvers' must be a non-empty list")
+
+    for i, rule in enumerate(resolvers):
+        where = f"resolvers[{i}]"
+        if not isinstance(rule, dict):
+            raise ConfigError(f"{where} must be a mapping")
+        if "target" not in rule or not isinstance(rule["target"], str) or not rule["target"]:
+            raise ConfigError(f"{where} must have a non-empty string 'target'")
+
+        match = rule.get("match", {})
+        if match not in ("*", {}, None) and not isinstance(match, dict):
+            raise ConfigError(f"{where}.match must be '*' or a mapping of clauses")
+
+        for j, lt in enumerate(rule.get("link_types", []) or []):
+            ltwhere = f"{where}.link_types[{j}]"
+            if not isinstance(lt, dict):
+                raise ConfigError(f"{ltwhere} must be a mapping")
+            for required in ("rel", "href"):
+                if required not in lt or not isinstance(lt[required], str) or not lt[required]:
+                    raise ConfigError(f"{ltwhere} must have a non-empty string '{required}'")
+
+    return config
+
+
 @dataclass
 class LinkType:
     rel: str
@@ -90,6 +129,7 @@ class Router:
     def load(self, path: str | Path) -> None:
         with open(path) as f:
             config = yaml.safe_load(f) or {}
+        _validate_config(config)
         self._routes = []
         for rule in config.get("resolvers", []):
             link_types = [

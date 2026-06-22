@@ -31,22 +31,15 @@ hardened for untrusted public traffic.
     `/metrics`.
   - Publish a SemVer policy: post-1.0, a breaking change to either contract is a
     major bump.
-- [ ] **Fail-fast config validation at startup.** `Router.__init__` currently
-  does `yaml.safe_load(...) or {}` with no shape validation — a malformed
-  `routes.yaml` surfaces as a confusing runtime error (or silent mis-route)
-  instead of a clear startup failure. Validate the config (ideally against a
-  JSON Schema) and exit with an actionable message. **1.0 must not start on a
-  broken config.**
-- [ ] **Bound untrusted input (DoS guard).** The parser has no maximum path
-  length / segment-count limit. As public infrastructure taking arbitrary URLs,
-  1.0 should cap path length and reject pathological inputs with a 400 before
-  parsing.
-- [ ] **Compression decision (GS1 DL §7).** Compressed DL URIs are not
-  supported. Either implement decompression or **explicitly document it as a
-  scoped non-goal** for 1.0 (with rationale) so the "v1.2" claim is precise.
-  Recommendation: document as a non-goal for 1.0, revisit in 1.x — the
-  compression algorithm is substantial and uncompressed URIs are the common case
-  for ESPR DPP carriers.
+- [x] **Fail-fast config validation at startup.** `Router` now validates the
+  `routes.yaml` shape and raises `ConfigError` with an actionable message; the
+  service refuses to start on a broken config. *(done — `_validate_config`)*
+- [x] **Bound untrusted input (DoS guard).** The parser rejects URIs longer than
+  `MAX_URI_LENGTH` (2048) with a 400 before parsing. *(done)*
+- [x] **Compression decision (GS1 DL §7).** Decided: **scoped out of 1.0** and
+  documented as a non-goal (see [ARCHITECTURE.md](docs/ARCHITECTURE.md#non-goals))
+  — the compression scheme is substantial and uncompressed URIs are the common
+  case for ESPR DPP carriers. May be revisited in 1.x.
 
 ## 1.0 polish (Should)
 

@@ -309,6 +309,11 @@ or a verifiable-credentials issuer. The resolver:
   for one approach).
 - Does **not** retain logs of who scanned what — that is a privacy and a
   publisher concern, not a routing concern.
+- Does **not** decode **compressed** GS1 Digital Link URIs (GS1 DL Standard
+  §7) — *scoped out of 1.0*. The compression scheme is substantial and
+  uncompressed URIs are the common case for ESPR DPP data carriers; support may
+  be revisited in a later release (see [ROADMAP.md](../ROADMAP.md)). Only
+  uncompressed (canonical / alpha-coded) URIs are parsed.
 
 Mixing any of these into a resolver couples it to a particular DPP-platform
 roadmap and limits its usefulness as open infrastructure. The intention is
