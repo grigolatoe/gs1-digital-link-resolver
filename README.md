@@ -167,8 +167,8 @@ Active development. A funding application has been submitted to [NGI Zero Common
 | ✅ | Conformance test suite (110 tests against GS1 DL §4.4–§4.6 + RFC 9264) |
 | ✅ | DPP validator wire-up — `schema` (live fetch + JSON-Schema) and `http` (external delegate) |
 | ✅ | Deployment / operator guide — [`docs/deployment.md`](docs/deployment.md) |
+| ✅ | Prometheus `/metrics` endpoint (requests, validations, latency, build info) |
 | 🔲 | Bundled normative DPP profile — pending a stable, openly-licensed standard (tracking UNTP) |
-| 🔲 | Native metrics endpoint (`/metrics`) |
 
 ## Standards references
 

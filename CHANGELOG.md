@@ -9,14 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Deployment & operator guide** (`docs/deployment.md`) — production runbook
-  covering configuration, TLS reverse-proxy (Caddy/nginx), Docker Compose,
-  Kubernetes (probes + ConfigMap), health checks, stateless scaling, security,
-  and upgrade/rollback. Delivers NGI Zero Commons Fund Milestone 4 (docs).
+- **Prometheus `/metrics` endpoint** — dependency-free text-format exposition:
+  `gs1_resolver_requests_total{outcome}`, `gs1_resolver_validations_total{ok}`,
+  a resolve-latency summary (`..._sum` / `..._count`), and
+  `gs1_resolver_build_info{version}`. Counters are process-local; aggregate at
+  the Prometheus server. Documented in `docs/deployment.md`.
 
 ## [0.3.0] — "Hallmark" — 2026-06-22
 
-NGI Zero Commons Fund Milestone 3 — DPP validator wire-up.
+NGI Zero Commons Fund Milestones 3 (DPP validator wire-up) and 4 (deployment docs).
 
 ### Added
 
@@ -40,10 +41,14 @@ NGI Zero Commons Fund Milestone 3 — DPP validator wire-up.
   schemas; the closest standard, UNTP, is pre-stable and copyleft-licensed), so
   operators point `schema_path` at their own / UNTP schema. See
   `profiles/README.md`.
+- **Deployment & operator guide** (`docs/deployment.md`) — production runbook
+  covering configuration, TLS reverse-proxy (Caddy/nginx), Docker Compose,
+  Kubernetes (probes + ConfigMap), health checks, stateless scaling, security,
+  and upgrade/rollback. Delivers NGI Zero Commons Fund Milestone 4 (docs).
 
 All validators are advisory: transport failures, non-2xx responses,
 unparseable bodies, or a missing optional dependency degrade to a soft
-warning and never block resolution. Test suite 97 → 110.
+warning and never block resolution. Test suite 97 → 111.
 
 ### Changed
 
@@ -51,6 +56,11 @@ warning and never block resolution. Test suite 97 → 110.
   "CIRPASS-2 textile/battery" profile ships (it doesn't, and CIRPASS-2 does not
   cover batteries). The validator section now reflects the four implemented
   types, the `validators` extra, and bring-your-own/UNTP profiles.
+
+### Fixed
+
+- **FastAPI metadata version** — `app.py` reported `0.2.0`; aligned to `0.3.0`
+  so the served OpenAPI advertises the correct version.
 
 ## [0.2.1] — 2026-06-22
 

@@ -24,11 +24,13 @@ Or via Docker:
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 
+from . import metrics
 from .linkset import build_jsonld, build_linkset, default_link_href
 from .negotiate import select_media_type
 from .parser import parse, validate_gtin14
@@ -36,12 +38,15 @@ from .router import Router
 
 CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", "/app/config/routes.yaml"))
 
+VERSION = "0.3.0"
+
 app = FastAPI(
     title="GS1 Digital Link Resolver",
     description="Open-source resolver for EU Digital Product Passports",
-    version="0.3.0",
+    version=VERSION,
     license_info={"name": "Apache 2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0"},
 )
+metrics.set_version(VERSION)
 
 _router: Router | None = None
 
@@ -58,8 +63,14 @@ def healthz() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/metrics")
+def prometheus_metrics() -> Response:
+    return PlainTextResponse(metrics.render(), media_type=metrics.CONTENT_TYPE)
+
+
 @app.get("/{path:path}")
 async def resolve(path: str, request: Request) -> Response:
+    start = time.monotonic()
     full_path = "/" + path
     query_string = str(request.url.query)
     uri = full_path + (f"?{query_string}" if query_string else "")
@@ -67,9 +78,11 @@ async def resolve(path: str, request: Request) -> Response:
     try:
         parsed = parse(uri)
     except ValueError as e:
+        metrics.record_request("bad_request", time.monotonic() - start)
         return JSONResponse({"error": str(e)}, status_code=400)
 
     if parsed.gtin and not validate_gtin14(parsed.gtin):
+        metrics.record_request("bad_request", time.monotonic() - start)
         return JSONResponse(
             {"error": f"Invalid GTIN-14 check digit: {parsed.gtin}"},
             status_code=400,
@@ -77,6 +90,7 @@ async def resolve(path: str, request: Request) -> Response:
 
     result = get_router().resolve(parsed)
     if result is None:
+        metrics.record_request("not_found", time.monotonic() - start)
         return JSONResponse({"error": "No route found for this identifier"}, status_code=404)
 
     target, link_types = result
@@ -89,6 +103,8 @@ async def resolve(path: str, request: Request) -> Response:
     # Drop validation entirely when the validator is a no-op so we don't
     # clutter responses for operators who haven't opted in.
     validation_payload = validation if validation.get("profile") else None
+    if validation_payload is not None:
+        metrics.record_validation(bool(validation.get("ok")))
 
     anchor = str(request.url)
     linkset = build_linkset(
@@ -100,8 +116,10 @@ async def resolve(path: str, request: Request) -> Response:
 
     if chosen == "text/html":
         href = default_link_href(linkset) or target
+        metrics.record_request("redirect", time.monotonic() - start)
         return RedirectResponse(url=href, status_code=302)
 
+    metrics.record_request("resolved", time.monotonic() - start)
     if chosen == "application/ld+json":
         return JSONResponse(build_jsonld(linkset), media_type="application/ld+json")
     return JSONResponse(linkset, media_type=chosen)

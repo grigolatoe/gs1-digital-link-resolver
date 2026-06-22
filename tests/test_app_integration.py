@@ -176,3 +176,37 @@ def test_validation_status_surfaced_when_smoke_validator_active(
     assert "gs1:validationStatus" in entry
     assert entry["gs1:validationStatus"]["profile"] == "smoke-builtin-v1"
     assert entry["gs1:validationStatus"]["ok"] is True
+
+
+def _metric_value(body: str, line_prefix: str) -> float:
+    """Pull the numeric value of a Prometheus sample line by its prefix."""
+    for line in body.splitlines():
+        if line.startswith(line_prefix) and not line.startswith("#"):
+            return float(line.rsplit(" ", 1)[1])
+    return 0.0
+
+
+def test_metrics_endpoint_prometheus_format(client: TestClient) -> None:
+    """GET /metrics exposes the Prometheus text format with build info + series."""
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain; version=0.0.4")
+    body = response.text
+    assert 'gs1_resolver_build_info{version="0.3.0"} 1' in body
+    assert "# TYPE gs1_resolver_requests_total counter" in body
+    assert "gs1_resolver_resolve_duration_seconds_count" in body
+
+
+def test_metrics_count_increments_on_resolve(client: TestClient) -> None:
+    """A successful resolve increments the resolved-outcome counter."""
+    before = _metric_value(
+        client.get("/metrics").text, 'gs1_resolver_requests_total{outcome="resolved"}'
+    )
+    client.get(
+        "/01/09780345418913/21/COUNTME",
+        headers={"Accept": "application/linkset+json"},
+    )
+    after = _metric_value(
+        client.get("/metrics").text, 'gs1_resolver_requests_total{outcome="resolved"}'
+    )
+    assert after == before + 1

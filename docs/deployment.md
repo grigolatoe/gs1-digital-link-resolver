@@ -191,9 +191,23 @@ Roll out config changes with `kubectl rollout restart deployment/gs1-resolver`
   touches config or downstreams — safe to poll frequently.
 - **Logs:** uvicorn writes access/error logs to stdout/stderr; collect with your
   platform's log driver.
-- **Metrics:** there is no `/metrics` (Prometheus) endpoint yet. If you need RED
-  metrics, run the resolver behind a proxy that exports them (Caddy, Traefik,
-  Envoy, or an nginx exporter). A native metrics endpoint is on the roadmap.
+- **Metrics:** `GET /metrics` exposes Prometheus text-format metrics (no extra
+  dependency):
+  - `gs1_resolver_requests_total{outcome="resolved|redirect|not_found|bad_request"}`
+  - `gs1_resolver_validations_total{ok="true|false"}` (omitted when the validator is no-op)
+  - `gs1_resolver_resolve_duration_seconds_{sum,count}` — a summary; average
+    latency = `rate(..._sum) / rate(..._count)`
+  - `gs1_resolver_build_info{version="..."}`
+
+  Counters are process-local: scrape each replica and aggregate at the
+  Prometheus server (the standard multi-target pattern). Example scrape config:
+
+  ```yaml
+  scrape_configs:
+    - job_name: gs1-resolver
+      static_configs:
+        - targets: ["resolver:8080"]
+  ```
 
 ## Scaling & performance
 
