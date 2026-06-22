@@ -133,19 +133,21 @@ The resolver supports a pluggable validator that runs at resolve time and report
 
 - **`noop`** (default) — zero overhead, never flags anything
 - **`smoke`** — built-in URI-shape sanity checks (serial/lot character class, unknown AIs)
-- **`schema`** — JSON-Schema check against a CIRPASS-2 profile (e.g. textile or battery)
-- **`http`** — delegate to an external CIRPASS-2 validator service: POSTs the resolved URI + target DPP URL to a configured `endpoint` and maps the verdict back
+- **`schema`** — fetches the target DPP and validates it against a JSON Schema *you* supply, surfacing every violation
+- **`http`** — delegate to an external DPP validator service: POSTs the resolved URI + target DPP URL to a configured `endpoint` and maps the verdict back
 
-Configure via the `validator:` block in `routes.yaml`, e.g. for the HTTP delegate:
+The `schema` and `http` validators need the optional extra (`pip install '.[validators]'`, which adds `httpx` + `jsonschema`); without it they degrade gracefully to a no-op. Configure via the `validator:` block in `routes.yaml`:
 
 ```yaml
 validator:
-  type: http
-  endpoint: https://validator.example.com/cirpass2/validate
-  timeout: 5.0
+  type: schema
+  schema_path: /app/profiles/illustrative-dpp.schema.json   # bring your own
+  profile: illustrative-dpp
 ```
 
-Operators can also implement the `Validator` protocol themselves. Validation outcomes are advisory — failures are surfaced in the response but never block resolution; any validator-side error (unreachable endpoint, unparseable body, missing optional dependency) degrades to a soft warning. The bundled CIRPASS-2 reference profiles for `schema` land in a follow-up milestone.
+**Profiles — bring your own.** There is, as of mid-2026, no canonical machine-readable CIRPASS-2 profile to bundle: CIRPASS-2 publishes data models and architecture docs, not JSON Schemas, and the closest emerging machine-readable standard — the [UN Transparency Protocol (UNTP)](https://untp.unece.org) — is still in pre-stable public review under a copyleft licence. So this repo ships only a small **illustrative, non-normative** profile (`profiles/illustrative-dpp.schema.json`) to exercise the validator; point `schema_path` at your own ESPR/UNTP-aligned schema for real compliance checks. See [`profiles/README.md`](profiles/README.md).
+
+Operators can also implement the `Validator` protocol themselves. Validation outcomes are advisory — failures are surfaced in the response but never block resolution; any validator-side error (unreachable endpoint, unparseable body, missing optional dependency) degrades to a soft warning.
 
 ## Project status
 
@@ -160,10 +162,11 @@ Active development. A funding application has been submitted to [NGI Zero Common
 | ✅ | Routing engine — declarative YAML, prefix/regex/primary-AI/has-qualifier/serial-allowlist clauses |
 | ✅ | RFC 9264 link-set responses with GS1 Web Vocabulary IRIs |
 | ✅ | Content negotiation with q-value handling |
-| ✅ | Pluggable validator interface (no-op, smoke, JSON-schema) |
+| ✅ | Pluggable validator interface (no-op, smoke, schema, http) |
 | ✅ | HTTP service — FastAPI, Docker image |
-| ✅ | Conformance test suite (86+ tests against GS1 DL §4.4–§4.6 + RFC 9264) |
-| 🔲 | CIRPASS-2 reference validator wire-up |
+| ✅ | Conformance test suite (110 tests against GS1 DL §4.4–§4.6 + RFC 9264) |
+| ✅ | DPP validator wire-up — `schema` (live fetch + JSON-Schema) and `http` (external delegate) |
+| 🔲 | Bundled normative DPP profile — pending a stable, openly-licensed standard (tracking UNTP) |
 | 🔲 | Deployment / operator guide |
 
 ## Standards references

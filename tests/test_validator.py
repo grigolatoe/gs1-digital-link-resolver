@@ -230,6 +230,39 @@ class TestSchema:
         assert result.ok is True
         assert any("could not be fetched" in w for w in result.warnings)
 
+    def test_bundled_illustrative_profile_works_end_to_end(self, monkeypatch):
+        import pathlib
+
+        import httpx
+
+        profile = (
+            pathlib.Path(__file__).parent.parent / "profiles" / "illustrative-dpp.schema.json"
+        )
+        assert profile.is_file(), "the illustrative profile must ship in-tree"
+
+        good = {
+            "id": "https://id.example.com/01/09780345418913/21/SER01",
+            "productIdentifier": {"gtin": "09780345418913", "serial": "SER01"},
+            "economicOperator": {"name": "Example Brand BV"},
+        }
+        bad = {"productIdentifier": {"gtin": "not-14-digits"}}  # missing id + operator, bad gtin
+
+        def make_get(doc):
+            def fake_get(url, timeout, follow_redirects):
+                return httpx.Response(200, json=doc, request=httpx.Request("GET", url))
+
+            return fake_get
+
+        v = SchemaValidator(schema_path=profile, profile="illustrative-dpp")
+
+        monkeypatch.setattr(httpx, "get", make_get(good))
+        assert v.validate(self.PARSED(), "https://dpp.test/p").ok is True
+
+        monkeypatch.setattr(httpx, "get", make_get(bad))
+        result = v.validate(self.PARSED(), "https://dpp.test/p")
+        assert result.ok is False
+        assert result.errors
+
 
 class TestLoader:
     def test_no_config_returns_noop(self):

@@ -11,6 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY resolver/ resolver/
+COPY profiles/ profiles/
 COPY config/routes.example.yaml config/routes.yaml
 
 ENV CONFIG_PATH=/app/config/routes.yaml

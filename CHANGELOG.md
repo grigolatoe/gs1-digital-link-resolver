@@ -7,24 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+NGI Zero Commons Fund Milestone 3 — DPP validator wire-up.
+
 ### Added
 
+- **`HttpValidator`** — the `http` validator type that delegates DPP
+  validation to an external validator service (POSTs the resolved URI +
+  target URL to a configured `endpoint`, maps the JSON verdict back).
+  Previously referenced in docs but not implemented; now shipped with the
+  `type: http` loader path.
 - **`SchemaValidator` now performs live validation** — it fetches the target
   DPP document (`httpx`, redirects followed, configurable `timeout`) and
   checks it against the configured JSON Schema with `jsonschema`, surfacing
   *every* violation (path + message), not just the first. Previously a stub
-  that returned `ok=True`. Advisory: an unreachable or non-JSON DPP degrades
-  to a soft warning (it is a target problem, not a schema failure); only a
-  real schema violation sets `ok=False`. New `validators` extra
-  (`pip install '.[validators]'`) pulls in `httpx` + `jsonschema`.
-- **`HttpValidator`** — the `http` validator type that delegates DPP
-  validation to an external CIRPASS-2 validator service (POSTs the resolved
-  URI + target URL to a configured `endpoint`, maps the JSON verdict back).
-  Previously referenced in docs but not implemented; now shipped with the
-  `type: http` loader path. Advisory-only like every validator: transport
-  failures, non-2xx responses, unparseable bodies, or a missing `httpx`
-  install all degrade to a soft warning and never block resolution.
-  Adds 8 tests (97 → 105). First step of NGI Zero Commons Fund Milestone 3.
+  that returned `ok=True`.
+- **`validators` optional extra** (`pip install '.[validators]'`) pulls in
+  `httpx` + `jsonschema` for the `schema` and `http` validators; the core
+  package stays slim and both degrade gracefully when the extra is absent.
+- **Illustrative DPP profile** (`profiles/illustrative-dpp.schema.json`, shipped
+  in the Docker image) — a deliberately minimal, **non-normative** JSON Schema so
+  the `schema` validator runs out of the box. There is no canonical
+  machine-readable CIRPASS-2 profile to bundle (CIRPASS-2 ships data models, not
+  schemas; the closest standard, UNTP, is pre-stable and copyleft-licensed), so
+  operators point `schema_path` at their own / UNTP schema. See
+  `profiles/README.md`.
+
+All validators are advisory: transport failures, non-2xx responses,
+unparseable bodies, or a missing optional dependency degrade to a soft
+warning and never block resolution. Test suite 97 → 110.
+
+### Changed
+
+- **Docs corrected** — README and example config no longer imply a canonical
+  "CIRPASS-2 textile/battery" profile ships (it doesn't, and CIRPASS-2 does not
+  cover batteries). The validator section now reflects the four implemented
+  types, the `validators` extra, and bring-your-own/UNTP profiles.
 
 ## [0.2.1] — 2026-06-22
 

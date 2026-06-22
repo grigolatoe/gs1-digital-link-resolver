@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/grigolatoe/gs1-digital-link-resolver/blob/main/profiles/illustrative-dpp.schema.json",
+  "title": "Illustrative DPP profile — NON-NORMATIVE",
+  "description": "A deliberately minimal, illustrative Digital Product Passport profile shipped so the `schema` validator has something to exercise out of the box and so documentation has a concrete example. It is NOT a normative ESPR, CIRPASS-2, or UNTP profile and MUST NOT be relied on for compliance. Point `schema_path` at your own profile (or the UN Transparency Protocol schema at https://untp.unece.org) for real validation.",
+  "type": "object",
+  "required": ["id", "productIdentifier", "economicOperator"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Stable identifier for the passport (e.g. the GS1 Digital Link URI)."
+    },
+    "productIdentifier": {
+      "type": "object",
+      "required": ["gtin"],
+      "properties": {
+        "gtin": {
+          "type": "string",
+          "pattern": "^[0-9]{14}$",
+          "description": "GTIN-14 (left-padded) of the product."
+        },
+        "serial": {
+          "type": "string",
+          "description": "Optional per-unit serial (GS1 AI 21)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "economicOperator": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "identifier": {
+          "type": "string",
+          "description": "e.g. EU EORI, VAT, or GS1 GLN."
+        }
+      },
+      "additionalProperties": true
+    },
+    "conformity": {
+      "type": "array",
+      "description": "Optional list of regulatory conformity claims.",
+      "items": {
+        "type": "object",
+        "required": ["regulation", "status"],
+        "properties": {
+          "regulation": {
+            "type": "string",
+            "description": "e.g. \"ESPR\", \"EU 2023/1542\"."
+          },
+          "status": {
+            "enum": ["conformant", "non-conformant", "pending"]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

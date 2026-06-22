@@ -13,8 +13,15 @@
 #
 #   type: noop    — default, ships zero overhead
 #   type: smoke   — built-in URI-shape sanity check (no DPP fetch)
-#   type: schema  — JSON-Schema check against a CIRPASS-2 profile
-#                   requires schema_path: /path/to/profile.schema.json
+#   type: schema  — fetch the target DPP and validate it against a JSON Schema
+#                   you control; requires schema_path. An illustrative
+#                   (non-normative) profile ships under profiles/. Needs the
+#                   `validators` extra: pip install '.[validators]'.
+#                     schema_path: /app/profiles/illustrative-dpp.schema.json
+#                     profile: illustrative-dpp
+#   type: http    — delegate to an external CIRPASS-2/DPP validator service;
+#                   requires endpoint (+ optional timeout). Needs httpx.
+#                     endpoint: https://validator.example.com/validate
 validator:
   type: smoke
   profile: smoke-builtin-v1
