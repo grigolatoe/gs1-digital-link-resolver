@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`SECURITY.md`** — repo-root vulnerability disclosure policy (supported
+  versions, private reporting to security@grigolato.it, PGP-encrypted option via
+  the release-signing key, scope incl. SSRF note for operator-configured
+  validators). Surfaced in GitHub's Security tab.
 - **Fail-fast config validation** — `Router` now validates `routes.yaml`
   structure at load time and raises `ConfigError` with an actionable message
   (which resolver / link-type, what's wrong) instead of failing confusingly at

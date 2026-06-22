@@ -43,9 +43,8 @@ hardened for untrusted public traffic.
 
 ## 1.0 polish (Should)
 
-- [ ] **`SECURITY.md`** — vulnerability disclosure policy (GitHub-standard;
-  expected for EU-funded public infrastructure). CONTRIBUTING references a
-  security channel; promote it to a top-level policy.
+- [x] **`SECURITY.md`** — vulnerability disclosure policy at the repo root
+  (supported versions, private reporting, PGP-encrypted option, scope). *(done)*
 - [ ] **Structured logging + request IDs** — for operability at scale.
 - [ ] **CIRPASS-2 CoP release announcement** (NGI M4 deliverable) — external,
   maintainer-posted.
