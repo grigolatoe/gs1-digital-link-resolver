@@ -183,7 +183,9 @@ class TestSchema:
             )
 
         monkeypatch.setattr(httpx, "get", fake_get)
-        v = SchemaValidator(schema_path=self._schema_file(tmp_path), profile="cirpass2-textile-2026")
+        v = SchemaValidator(
+            schema_path=self._schema_file(tmp_path), profile="cirpass2-textile-2026"
+        )
         result = v.validate(self.PARSED(), "https://dpp.test/p")
         assert result.ok is True
         assert result.errors == []
@@ -222,7 +224,9 @@ class TestSchema:
         import httpx
 
         def fake_get(url, timeout, follow_redirects):
-            return httpx.Response(200, content=b"<html>not json</html>", request=httpx.Request("GET", url))
+            return httpx.Response(
+                200, content=b"<html>not json</html>", request=httpx.Request("GET", url)
+            )
 
         monkeypatch.setattr(httpx, "get", fake_get)
         v = SchemaValidator(schema_path=self._schema_file(tmp_path))
@@ -235,9 +239,7 @@ class TestSchema:
 
         import httpx
 
-        profile = (
-            pathlib.Path(__file__).parent.parent / "profiles" / "illustrative-dpp.schema.json"
-        )
+        profile = pathlib.Path(__file__).parent.parent / "profiles" / "illustrative-dpp.schema.json"
         assert profile.is_file(), "the illustrative profile must ship in-tree"
 
         good = {
@@ -283,9 +285,7 @@ class TestLoader:
             load_validator({"type": "schema"})
 
     def test_http_config(self):
-        v = load_validator(
-            {"type": "http", "endpoint": "https://v.test/validate", "timeout": 2.5}
-        )
+        v = load_validator({"type": "http", "endpoint": "https://v.test/validate", "timeout": 2.5})
         assert isinstance(v, HttpValidator)
         assert v.endpoint == "https://v.test/validate"
         assert v.timeout == 2.5
