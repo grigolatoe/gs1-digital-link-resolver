@@ -1,9 +1,10 @@
-# Roadmap to 1.0
+# Roadmap
 
-Forward-looking plan. For shipped work see [CHANGELOG.md](CHANGELOG.md) and the
-milestone table in the [README](README.md#project-status).
+Forward-looking plan. **1.0.0 has shipped** — every blocker below is done and
+the contracts are frozen under SemVer. What remains is post-1.0 polish and
+deferred work. For shipped detail see [CHANGELOG.md](CHANGELOG.md).
 
-## Where we are (post-0.3.0 "Hallmark")
+## Where we are (1.0.0 "Hallmark")
 
 The resolver is **functionally complete** for GS1 Digital Link v1.2 routing:
 parser + full AI table, declarative YAML routing, RFC 9264 link-sets, content
@@ -22,10 +23,9 @@ hardened for untrusted public traffic.
 
 ## 1.0 blockers (Must)
 
-> **Status: all clear.** As of the unreleased line, every 1.0 blocker below is
-> done — the resolver is functionally and contractually 1.0-ready. What remains
-> (below) is polish and an external announcement, not gating work. The next
-> tagged release can be `1.0.0`.
+> **Status: shipped in 1.0.0.** Every 1.0 blocker below is done and the
+> contracts are frozen under SemVer. Retained here as the record of what 1.0
+> ratified.
 
 - [x] **Freeze & document the public contracts** (the core of 1.0) — *done*
   - **Config schema** — versioned via an optional `version:` field

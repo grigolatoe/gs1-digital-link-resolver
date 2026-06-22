@@ -7,113 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [1.0.0] — "Hallmark" — 2026-06-22
 
-- **Structured JSON logging + request IDs** — one JSON access line per request
-  to stdout (`request_id`, `method`, `path`, `status`, `duration_ms`; health and
-  metrics endpoints excluded). Every response carries an `X-Request-ID` header;
-  a caller-supplied one is propagated. Verbosity via `LOG_LEVEL` (default
-  `INFO`); dependency-free (`resolver/logging_config.py`).
-- **Versioned config schema + stability contract** — `routes.yaml` gains an
-  optional `version:` field (`CONFIG_SCHEMA_VERSION = 1`); an unsupported major
-  fails fast at startup. `docs/stability.md` documents the two stable contracts
-  (config schema + HTTP) and the SemVer policy that governs them from 1.0. This
-  was the last path-to-1.0 blocker — the resolver is now contractually
-  1.0-ready.
-- **`SECURITY.md`** — repo-root vulnerability disclosure policy (supported
-  versions, private reporting to security@grigolato.it, PGP-encrypted option via
-  the release-signing key, scope incl. SSRF note for operator-configured
-  validators). Surfaced in GitHub's Security tab.
-- **Fail-fast config validation** — `Router` now validates `routes.yaml`
-  structure at load time and raises `ConfigError` with an actionable message
-  (which resolver / link-type, what's wrong) instead of failing confusingly at
-  request time. The service refuses to start on a malformed config. A
-  match-only config with no `*` fallback remains valid (resolves owned ranges,
-  404s otherwise).
-- **Input bound (DoS guard)** — the parser rejects URIs longer than
-  `MAX_URI_LENGTH` (2048) with a 400 before parsing, since the resolver accepts
-  arbitrary public request paths.
-- **Prometheus `/metrics` endpoint** — dependency-free text-format exposition:
-  `gs1_resolver_requests_total{outcome}`, `gs1_resolver_validations_total{ok}`,
-  a resolve-latency summary (`..._sum` / `..._count`), and
-  `gs1_resolver_build_info{version}`. Counters are process-local; aggregate at
-  the Prometheus server. Documented in `docs/deployment.md`.
-
-## [0.3.0] — "Hallmark" — 2026-06-22
-
-NGI Zero Commons Fund Milestones 3 (DPP validator wire-up) and 4 (deployment docs).
+First **stable** release. From this version the **configuration schema** and the
+**HTTP contract** are stable under Semantic Versioning — see
+[docs/stability.md](docs/stability.md). This is the first published release since
+0.2.0; the `0.2.1` and `0.3.0` tags were development waypoints (never published
+as images) and are consolidated here. Delivers NGI Zero Commons Fund Milestones 3
+(DPP validator wire-up) and 4 (deployment docs). Test suite 95 → 129.
 
 ### Added
 
-- **`HttpValidator`** — the `http` validator type that delegates DPP
-  validation to an external validator service (POSTs the resolved URI +
-  target URL to a configured `endpoint`, maps the JSON verdict back).
-  Previously referenced in docs but not implemented; now shipped with the
-  `type: http` loader path.
-- **`SchemaValidator` now performs live validation** — it fetches the target
-  DPP document (`httpx`, redirects followed, configurable `timeout`) and
-  checks it against the configured JSON Schema with `jsonschema`, surfacing
-  *every* violation (path + message), not just the first. Previously a stub
-  that returned `ok=True`.
-- **`validators` optional extra** (`pip install '.[validators]'`) pulls in
-  `httpx` + `jsonschema` for the `schema` and `http` validators; the core
-  package stays slim and both degrade gracefully when the extra is absent.
+- **Four DPP validators, fully implemented** — `noop`, `smoke`, `schema`
+  (fetches the target DPP via `httpx` and validates it against a JSON Schema with
+  `jsonschema`, surfacing *every* violation), and `http` (delegates to an
+  external validator `endpoint`). All advisory: any fetch/transport/parse failure
+  or missing optional dependency degrades to a soft warning and never blocks
+  resolution. Behind the `validators` optional extra
+  (`pip install '.[validators]'`) so the core package stays slim.
 - **Illustrative DPP profile** (`profiles/illustrative-dpp.schema.json`, shipped
-  in the Docker image) — a deliberately minimal, **non-normative** JSON Schema so
-  the `schema` validator runs out of the box. There is no canonical
-  machine-readable CIRPASS-2 profile to bundle (CIRPASS-2 ships data models, not
-  schemas; the closest standard, UNTP, is pre-stable and copyleft-licensed), so
-  operators point `schema_path` at their own / UNTP schema. See
-  `profiles/README.md`.
-- **Deployment & operator guide** (`docs/deployment.md`) — production runbook
-  covering configuration, TLS reverse-proxy (Caddy/nginx), Docker Compose,
-  Kubernetes (probes + ConfigMap), health checks, stateless scaling, security,
-  and upgrade/rollback. Delivers NGI Zero Commons Fund Milestone 4 (docs).
+  in the image) — minimal, **non-normative**, so the `schema` validator runs out
+  of the box. No canonical machine-readable CIRPASS-2 profile exists to bundle
+  (CIRPASS-2 ships data models, not schemas; the closest standard, UNTP, is
+  pre-stable and copyleft-licensed), so operators bring their own / point at UNTP.
+- **Prometheus `/metrics` endpoint** — dependency-free text exposition:
+  `gs1_resolver_requests_total{outcome}`, `gs1_resolver_validations_total{ok}`, a
+  resolve-latency summary, and `gs1_resolver_build_info{version}`.
+- **Structured JSON logging + request IDs** — one JSON access line per request
+  (`request_id`, `method`, `path`, `status`, `duration_ms`); `X-Request-ID`
+  generated/propagated; verbosity via `LOG_LEVEL`.
+- **Versioned config schema** — optional `version:` field
+  (`CONFIG_SCHEMA_VERSION = 1`); unsupported majors fail fast at startup.
+- **Fail-fast config validation** — `Router` validates `routes.yaml` shape at
+  load time and raises `ConfigError` with an actionable message; the service
+  refuses to start on a malformed config.
+- **Input bound (DoS guard)** — URIs longer than `MAX_URI_LENGTH` (2048) are
+  rejected with a 400 before parsing.
+- **Operator documentation** — deployment & operator guide
+  ([docs/deployment.md](docs/deployment.md)), stability/SemVer contract
+  ([docs/stability.md](docs/stability.md)), `ROADMAP.md`, and `SECURITY.md`
+  (vulnerability disclosure policy).
+- **Expanded HTTP integration tests** against the shipped example config
+  (content negotiation, `?linkType=` filtering, GTIN boundary, validator sidecar,
+  metrics, request-id propagation).
 
-All validators are advisory: transport failures, non-2xx responses,
-unparseable bodies, or a missing optional dependency degrade to a soft
-warning and never block resolution. Test suite 97 → 111.
+### Fixed
+
+- **Canonical URI pads a GTIN primary key to GTIN-14** (GS1 DL §4.6) — a GTIN-13
+  input previously produced a 13-digit canonical URI; it is now left-padded.
 
 ### Changed
 
-- **Docs corrected** — README and example config no longer imply a canonical
-  "CIRPASS-2 textile/battery" profile ships (it doesn't, and CIRPASS-2 does not
-  cover batteries). The validator section now reflects the four implemented
-  types, the `validators` extra, and bring-your-own/UNTP profiles.
-
-### Fixed
-
-- **FastAPI metadata version** — `app.py` reported `0.2.0`; aligned to `0.3.0`
-  so the served OpenAPI advertises the correct version.
-
-## [0.2.1] — 2026-06-22
-
-### Added
-
-- **Container image published** to `ghcr.io/grigolatoe/gs1-digital-link-resolver`
-  at tags `0.2.0` and `latest`, both pointing at the v0.2.0 source. OCI image
-  labels (`org.opencontainers.image.source`, `description`, `licenses`,
-  `version`) link the package back to this repository on the GitHub UI.
-- **PGP-signed release manifest** — `SIGNING.md` documents the verification
-  procedure; `SIGNATURES-v0.2.0.txt` + `SIGNATURES-v0.2.0.txt.asc` are
-  attached to the v0.2.0 GitHub Release. The signing key is
-  `47DE71F021C986123851E8AD65A8E29C92A63D38` (Ed25519), the same key
-  attached to the NGI Zero Commons Fund application.
-- **HTTP integration tests** (`tests/test_app_integration.py`) — nine
-  end-to-end tests exercising the FastAPI app against the shipped example
-  config: content-negotiation matrix (`application/linkset+json`,
-  `application/ld+json`, HTML 302), `?linkType=` filtering, GTIN mod-10
-  boundary, wildcard fallback to `id.gs1.org`, malformed-path refusal, and
-  `gs1:validationStatus` sidecar surfacing. Total: 95/95 tests pass.
-
-### Fixed
-
-- **Canonical URI now pads a GTIN primary key to GTIN-14** (GS1 DL §4.6).
-  `canonicalise()` previously emitted the GTIN exactly as supplied, so a
-  GTIN-13 input produced a 13-digit canonical URI. It now left-pads via the
-  existing `pad_gtin_to_14()` helper (idempotent on 14-digit GTINs; non-GTIN
-  primaries such as GRAI are unaffected). Two conformance vectors added.
-  Total: 97/97 tests pass.
+- Docs corrected: no canonical "CIRPASS-2 textile/battery" profile ships
+  (CIRPASS-2 publishes data models, not schemas, and does not cover batteries);
+  the validator docs reflect the four implemented types and bring-your-own/UNTP.
 
 ## [0.2.0] — "Gift" — 2026-05-18
 

@@ -41,7 +41,7 @@ from .router import Router
 
 CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", "/app/config/routes.yaml"))
 
-VERSION = "0.3.0"
+VERSION = "1.0.0"
 
 configure_logging(os.environ.get("LOG_LEVEL", "INFO"))
 _access_log = logging.getLogger("resolver.access")

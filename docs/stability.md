@@ -1,13 +1,8 @@
 # Stability & versioning
 
-This resolver follows [Semantic Versioning](https://semver.org/). From **1.0.0**
-onward, the two contracts below are stable: a breaking change to either requires
-a **major** version bump. This page is the reference for what adopters can rely
-on.
-
-> **Pre-1.0 note.** Until 1.0.0 these contracts are settled in practice but not
-> yet under the SemVer guarantee — minor 0.x releases may still adjust them. The
-> `0.3.x` shape described here is what 1.0 will ratify.
+This resolver follows [Semantic Versioning](https://semver.org/). As of **1.0.0**
+the two contracts below are stable: a breaking change to either requires a
+**major** version bump. This page is the reference for what adopters can rely on.
 
 ## The two stable contracts
 

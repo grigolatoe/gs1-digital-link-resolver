@@ -8,7 +8,7 @@ Older tags are not patched — please upgrade to the latest release.
 
 | Version | Supported |
 |---------|-----------|
-| latest release (`0.3.x`) | ✅ |
+| latest release (`1.0.x`) | ✅ |
 | `main` | ✅ |
 | older tags | ❌ |
 

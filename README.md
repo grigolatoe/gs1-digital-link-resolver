@@ -40,7 +40,7 @@ The release image ships on the GitHub Container Registry:
 
 ```bash
 docker run -p 8080:8080 \
-  ghcr.io/grigolatoe/gs1-digital-link-resolver:0.3.0
+  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.0.0
 ```
 
 That binds the resolver on `localhost:8080` with the example config bundled
@@ -49,7 +49,7 @@ into the image. To bring your own routes, mount over `/app/config/routes.yaml`:
 ```bash
 docker run -p 8080:8080 \
   -v ./config/routes.yaml:/app/config/routes.yaml \
-  ghcr.io/grigolatoe/gs1-digital-link-resolver:0.3.0
+  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.0.0
 ```
 
 Then visit:
@@ -79,10 +79,10 @@ procedure; the short version is:
 
 ```bash
 gpg --keyserver hkps://keys.openpgp.org --recv-keys 47DE71F021C986123851E8AD65A8E29C92A63D38
-gh release download v0.3.0 --repo grigolatoe/gs1-digital-link-resolver --pattern 'SIGNATURES-*'
-gpg --verify SIGNATURES-v0.3.0.txt.asc SIGNATURES-v0.3.0.txt
-docker pull ghcr.io/grigolatoe/gs1-digital-link-resolver:0.3.0
-# The digest reported by docker must match the one in SIGNATURES-v0.3.0.txt.
+gh release download v1.0.0 --repo grigolatoe/gs1-digital-link-resolver --pattern 'SIGNATURES-*'
+gpg --verify SIGNATURES-v1.0.0.txt.asc SIGNATURES-v1.0.0.txt
+docker pull ghcr.io/grigolatoe/gs1-digital-link-resolver:1.0.0
+# The digest reported by docker must match the one in SIGNATURES-v1.0.0.txt.
 ```
 
 ## Configuration
@@ -151,11 +151,10 @@ Operators can also implement the `Validator` protocol themselves. Validation out
 
 ## Project status
 
-Active development. A funding application has been submitted to [NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation, EU-funded).
-
-The path from here to a stable 1.0 is tracked in [ROADMAP.md](ROADMAP.md); the
-config-schema and HTTP contracts and their SemVer guarantees are documented in
-[docs/stability.md](docs/stability.md).
+**Stable — 1.0.** The configuration schema and HTTP contract are now stable under
+Semantic Versioning; see [docs/stability.md](docs/stability.md). Supported by the
+[NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation,
+EU-funded). Post-1.0 direction is tracked in [ROADMAP.md](ROADMAP.md).
 
 **Milestones delivered:**
 

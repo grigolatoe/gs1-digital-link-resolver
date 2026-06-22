@@ -39,7 +39,7 @@ not a live reload.
 ```bash
 docker run -p 8080:8080 \
   -v ./config/routes.yaml:/app/config/routes.yaml \
-  ghcr.io/grigolatoe/gs1-digital-link-resolver:0.3.0
+  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.0.0
 ```
 
 Verify it's up:
@@ -49,7 +49,7 @@ curl -fsS http://localhost:8080/healthz          # {"status":"ok"}
 curl -fsS http://localhost:8080/01/09780345418913/21/ABC123 | jq .
 ```
 
-Pin a specific version tag in production (e.g. `:0.3.0`), not `:latest`, so
+Pin a specific version tag in production (e.g. `:1.0.0`), not `:latest`, so
 rollouts are deliberate. Every tag is PGP-signed — see
 [SIGNING.md](../SIGNING.md) to verify the image before deploying.
 
@@ -131,7 +131,7 @@ The link-set `anchor` echoes the request URL, so forwarding `Host` /
 ```yaml
 services:
   resolver:
-    image: ghcr.io/grigolatoe/gs1-digital-link-resolver:0.3.0
+    image: ghcr.io/grigolatoe/gs1-digital-link-resolver:1.0.0
     restart: unless-stopped
     volumes:
       - ./routes.yaml:/app/config/routes.yaml:ro
@@ -164,7 +164,7 @@ spec:
     spec:
       containers:
         - name: resolver
-          image: ghcr.io/grigolatoe/gs1-digital-link-resolver:0.3.0
+          image: ghcr.io/grigolatoe/gs1-digital-link-resolver:1.0.0
           ports:
             - containerPort: 8080
           volumeMounts:
