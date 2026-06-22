@@ -166,8 +166,9 @@ Active development. A funding application has been submitted to [NGI Zero Common
 | ✅ | HTTP service — FastAPI, Docker image |
 | ✅ | Conformance test suite (110 tests against GS1 DL §4.4–§4.6 + RFC 9264) |
 | ✅ | DPP validator wire-up — `schema` (live fetch + JSON-Schema) and `http` (external delegate) |
+| ✅ | Deployment / operator guide — [`docs/deployment.md`](docs/deployment.md) |
 | 🔲 | Bundled normative DPP profile — pending a stable, openly-licensed standard (tracking UNTP) |
-| 🔲 | Deployment / operator guide |
+| 🔲 | Native metrics endpoint (`/metrics`) |
 
 ## Standards references
 
