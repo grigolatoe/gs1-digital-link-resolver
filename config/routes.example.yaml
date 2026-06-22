@@ -2,6 +2,10 @@
 #
 # Routes are matched top-to-bottom; first match wins.
 # Copy this file to routes.yaml and adapt to your setup.
+
+# Config schema version (optional; defaults to the resolver's current major).
+# Stable under SemVer — see docs/stability.md. A breaking schema change bumps it.
+version: 1
 #
 # NOTE: GTIN values in DL URIs are GTIN-14 — left-padded with zero for
 #       GTIN-13 / GTIN-12 / GTIN-8 inputs. So a "books" GS1 prefix of

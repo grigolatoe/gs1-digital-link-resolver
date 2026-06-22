@@ -60,6 +60,44 @@ class TestConfigValidation:
         with pytest.raises(ConfigError, match="rel"):
             Router(cfg)
 
+    def test_supported_version_loads(self, tmp_path):
+        cfg = _write_yaml(
+            tmp_path,
+            """
+            version: 1
+            resolvers:
+              - match: "*"
+                target: "https://x.test/{gtin}"
+            """,
+        )
+        assert isinstance(Router(cfg), Router)
+
+    def test_unsupported_version_raises(self, tmp_path):
+        cfg = _write_yaml(
+            tmp_path,
+            """
+            version: 99
+            resolvers:
+              - match: "*"
+                target: "https://x.test/{gtin}"
+            """,
+        )
+        with pytest.raises(ConfigError, match="unsupported config version"):
+            Router(cfg)
+
+    def test_non_integer_version_raises(self, tmp_path):
+        cfg = _write_yaml(
+            tmp_path,
+            """
+            version: "one"
+            resolvers:
+              - match: "*"
+                target: "https://x.test/{gtin}"
+            """,
+        )
+        with pytest.raises(ConfigError, match="must be an integer"):
+            Router(cfg)
+
     def test_match_only_config_without_fallback_is_allowed(self, tmp_path):
         """No fallback is a valid choice (resolve only owned ranges → 404 else)."""
         cfg = _write_yaml(

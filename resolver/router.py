@@ -33,6 +33,12 @@ from .parser import GS1ParseResult
 from .validator import NoOpValidator, Validator, load_validator
 
 
+# The config schema is versioned and stable under SemVer (see docs/stability.md).
+# A breaking change to the schema bumps this major. `version:` is optional in
+# routes.yaml; when omitted the current major is assumed.
+CONFIG_SCHEMA_VERSION = 1
+
+
 class ConfigError(ValueError):
     """Raised when routes.yaml is structurally invalid — fail fast at startup."""
 
@@ -43,6 +49,18 @@ def _validate_config(config: object) -> dict:
     rather than fail confusingly at request time."""
     if not isinstance(config, dict):
         raise ConfigError("config root must be a mapping (a YAML object)")
+
+    version = config.get("version")
+    if version is not None:
+        try:
+            major = int(version)
+        except (TypeError, ValueError):
+            raise ConfigError(f"config 'version' must be an integer, got {version!r}")
+        if major != CONFIG_SCHEMA_VERSION:
+            raise ConfigError(
+                f"unsupported config version {major}; this resolver supports "
+                f"schema version {CONFIG_SCHEMA_VERSION}"
+            )
 
     resolvers = config.get("resolvers")
     if resolvers is None:

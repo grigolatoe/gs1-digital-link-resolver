@@ -22,15 +22,18 @@ hardened for untrusted public traffic.
 
 ## 1.0 blockers (Must)
 
-- [ ] **Freeze & document the public contracts** (the core of 1.0)
-  - **Config schema** — `routes.yaml` structure (match clauses, `link_types`,
-    `validator` block). Add an optional `version:` field so future schema
-    changes are detectable/migratable (none today).
-  - **HTTP contract** — path handling, content-negotiation matrix, response
-    shapes, status codes, the `gs1:validationStatus` sidecar, `/healthz`,
-    `/metrics`.
-  - Publish a SemVer policy: post-1.0, a breaking change to either contract is a
-    major bump.
+> **Status: all clear.** As of the unreleased line, every 1.0 blocker below is
+> done — the resolver is functionally and contractually 1.0-ready. What remains
+> (below) is polish and an external announcement, not gating work. The next
+> tagged release can be `1.0.0`.
+
+- [x] **Freeze & document the public contracts** (the core of 1.0) — *done*
+  - **Config schema** — versioned via an optional `version:` field
+    (`CONFIG_SCHEMA_VERSION = 1`); unsupported majors fail fast at startup.
+  - **HTTP contract** — paths, content-negotiation matrix, status codes,
+    `gs1:validationStatus`, `/healthz`, `/metrics` documented.
+  - SemVer policy published in [docs/stability.md](docs/stability.md): post-1.0
+    a breaking change to either contract is a major bump.
 - [x] **Fail-fast config validation at startup.** `Router` now validates the
   `routes.yaml` shape and raises `ConfigError` with an actionable message; the
   service refuses to start on a broken config. *(done — `_validate_config`)*

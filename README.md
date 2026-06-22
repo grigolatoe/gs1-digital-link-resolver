@@ -153,7 +153,9 @@ Operators can also implement the `Validator` protocol themselves. Validation out
 
 Active development. A funding application has been submitted to [NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) (NLnet Foundation, EU-funded).
 
-The path from here to a stable 1.0 is tracked in [ROADMAP.md](ROADMAP.md).
+The path from here to a stable 1.0 is tracked in [ROADMAP.md](ROADMAP.md); the
+config-schema and HTTP contracts and their SemVer guarantees are documented in
+[docs/stability.md](docs/stability.md).
 
 **Milestones delivered:**
 

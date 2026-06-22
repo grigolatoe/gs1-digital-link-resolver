@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Versioned config schema + stability contract** — `routes.yaml` gains an
+  optional `version:` field (`CONFIG_SCHEMA_VERSION = 1`); an unsupported major
+  fails fast at startup. `docs/stability.md` documents the two stable contracts
+  (config schema + HTTP) and the SemVer policy that governs them from 1.0. This
+  was the last path-to-1.0 blocker — the resolver is now contractually
+  1.0-ready.
 - **`SECURITY.md`** — repo-root vulnerability disclosure policy (supported
   versions, private reporting to security@grigolato.it, PGP-encrypted option via
   the release-signing key, scope incl. SSRF note for operator-configured
