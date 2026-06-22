@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`SchemaValidator` now performs live validation** — it fetches the target
+  DPP document (`httpx`, redirects followed, configurable `timeout`) and
+  checks it against the configured JSON Schema with `jsonschema`, surfacing
+  *every* violation (path + message), not just the first. Previously a stub
+  that returned `ok=True`. Advisory: an unreachable or non-JSON DPP degrades
+  to a soft warning (it is a target problem, not a schema failure); only a
+  real schema violation sets `ok=False`. New `validators` extra
+  (`pip install '.[validators]'`) pulls in `httpx` + `jsonschema`.
 - **`HttpValidator`** — the `http` validator type that delegates DPP
   validation to an external CIRPASS-2 validator service (POSTs the resolved
   URI + target URL to a configured `endpoint`, maps the JSON verdict back).

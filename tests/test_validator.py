@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import textwrap
 
 import pytest
@@ -12,6 +13,7 @@ from resolver.router import LinkType, Router
 from resolver.validator import (
     HttpValidator,
     NoOpValidator,
+    SchemaValidator,
     SmokeValidator,
     ValidationResult,
     Validator,
@@ -144,6 +146,89 @@ class TestHttp:
         result = v.validate(self.PARSED(), "https://dpp.test/p")
         assert result.ok is True
         assert any("unavailable" in w for w in result.warnings)
+
+
+class TestSchema:
+    """SchemaValidator fetches the target DPP and checks it against a JSON Schema."""
+
+    PARSED = staticmethod(lambda: parse("/01/09780345418913/21/SER01"))
+
+    @staticmethod
+    def _schema_file(tmp_path):
+        schema = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["fibreComposition", "recyclability"],
+            "properties": {
+                "fibreComposition": {"type": "string"},
+                "recyclability": {"type": "number"},
+            },
+        }
+        p = tmp_path / "cirpass2-textile.schema.json"
+        p.write_text(json.dumps(schema))
+        return p
+
+    def test_satisfies_protocol(self, tmp_path):
+        v = SchemaValidator(schema_path=self._schema_file(tmp_path))
+        assert isinstance(v, Validator)
+
+    def test_valid_dpp_passes(self, tmp_path, monkeypatch):
+        import httpx
+
+        def fake_get(url, timeout, follow_redirects):
+            return httpx.Response(
+                200,
+                json={"fibreComposition": "100% cotton", "recyclability": 0.8},
+                request=httpx.Request("GET", url),
+            )
+
+        monkeypatch.setattr(httpx, "get", fake_get)
+        v = SchemaValidator(schema_path=self._schema_file(tmp_path), profile="cirpass2-textile-2026")
+        result = v.validate(self.PARSED(), "https://dpp.test/p")
+        assert result.ok is True
+        assert result.errors == []
+        assert result.profile == "cirpass2-textile-2026"
+
+    def test_malformed_dpp_reports_all_violations(self, tmp_path, monkeypatch):
+        import httpx
+
+        def fake_get(url, timeout, follow_redirects):
+            # missing fibreComposition; recyclability has the wrong type
+            return httpx.Response(
+                200,
+                json={"recyclability": "not-a-number"},
+                request=httpx.Request("GET", url),
+            )
+
+        monkeypatch.setattr(httpx, "get", fake_get)
+        v = SchemaValidator(schema_path=self._schema_file(tmp_path))
+        result = v.validate(self.PARSED(), "https://dpp.test/p")
+        assert result.ok is False
+        assert len(result.errors) >= 2  # both the missing field and the type error
+
+    def test_unreachable_dpp_is_advisory(self, tmp_path, monkeypatch):
+        import httpx
+
+        def fake_get(url, timeout, follow_redirects):
+            raise httpx.ConnectError("no route")
+
+        monkeypatch.setattr(httpx, "get", fake_get)
+        v = SchemaValidator(schema_path=self._schema_file(tmp_path))
+        result = v.validate(self.PARSED(), "https://dpp.test/p")
+        assert result.ok is True  # fetch failure is not a compliance failure
+        assert any("could not be fetched" in w for w in result.warnings)
+
+    def test_non_json_dpp_is_advisory(self, tmp_path, monkeypatch):
+        import httpx
+
+        def fake_get(url, timeout, follow_redirects):
+            return httpx.Response(200, content=b"<html>not json</html>", request=httpx.Request("GET", url))
+
+        monkeypatch.setattr(httpx, "get", fake_get)
+        v = SchemaValidator(schema_path=self._schema_file(tmp_path))
+        result = v.validate(self.PARSED(), "https://dpp.test/p")
+        assert result.ok is True
+        assert any("could not be fetched" in w for w in result.warnings)
 
 
 class TestLoader:

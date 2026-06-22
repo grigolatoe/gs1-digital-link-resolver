@@ -22,7 +22,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "httpx", "ruff==0.6.9"]
+# Operators who enable the `schema` or `http` validator need these.
+validators = ["httpx", "jsonschema"]
+dev = ["pytest", "httpx", "jsonschema", "ruff==0.6.9"]
 
 [project.urls]
 Homepage = "https://github.com/grigolatoe/gs1-digital-link-resolver"

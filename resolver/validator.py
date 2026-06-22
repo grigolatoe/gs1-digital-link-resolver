@@ -136,17 +136,25 @@ class SmokeValidator:
 class SchemaValidator:
     """
     Validate the *target DPP* against a JSON Schema (e.g. a CIRPASS-2
-    textile or battery profile). The schema is fetched once at construction
-    time; the target DPP is fetched per-resolve.
+    textile or battery profile). The schema is loaded once at construction
+    time; the target DPP document is fetched per-resolve and checked against
+    it, with every schema violation surfaced (not just the first).
 
-    This implementation deliberately avoids a hard dependency on
-    `jsonschema` so the package stays slim. If the operator has not
-    installed `jsonschema`, the validator emits a one-time warning and
-    falls back to a no-op.
+    Two optional dependencies keep the core package slim and are imported
+    lazily: `jsonschema` (the validation engine) and `httpx` (to fetch the
+    target DPP). If either is missing the validator emits a one-time warning
+    and falls back to a no-op.
+
+    Advisory semantics, consistent with the other validators: only an actual
+    *schema violation* sets ``ok=False``. A DPP that cannot be fetched or is
+    not JSON is an operational problem with the target, not a compliance
+    failure of this resolver — those degrade to a soft warning with
+    ``ok=True`` and never block resolution.
     """
 
     schema_path: str | Path
     profile: str = "cirpass2-custom"
+    timeout: float = 5.0
 
     def __post_init__(self) -> None:
         with open(self.schema_path) as f:
@@ -157,6 +165,12 @@ class SchemaValidator:
             self._jsonschema_available = True
         except ImportError:
             self._jsonschema_available = False
+        try:
+            import httpx  # noqa: F401
+
+            self._httpx_available = True
+        except ImportError:
+            self._httpx_available = False
 
     def validate(self, parsed: GS1ParseResult, target_url: str) -> ValidationResult:
         if not self._jsonschema_available:
@@ -165,12 +179,47 @@ class SchemaValidator:
                 profile=self.profile,
                 warnings=["jsonschema package not installed; SchemaValidator disabled."],
             )
-        # Note: actually fetching `target_url` and validating the body
-        # against `self._schema` is intentionally out of scope for the
-        # initial scaffold — the hook contract is what matters at this
-        # stage. Milestone 3 of the NGI grant covers the live integration
-        # with the CIRPASS-2 reference validator endpoint.
-        return ValidationResult(ok=True, profile=self.profile)
+        if not self._httpx_available:
+            return ValidationResult(
+                ok=True,
+                profile=self.profile,
+                warnings=["httpx package not installed; SchemaValidator cannot fetch the DPP."],
+            )
+
+        import httpx
+
+        try:
+            resp = httpx.get(target_url, timeout=self.timeout, follow_redirects=True)
+            resp.raise_for_status()
+            document = resp.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            return ValidationResult(
+                ok=True,
+                profile=self.profile,
+                warnings=[
+                    f"Target DPP could not be fetched or parsed as JSON "
+                    f"({exc.__class__.__name__}); schema validation skipped."
+                ],
+            )
+
+        import jsonschema
+        from jsonschema.validators import validator_for
+
+        validator_cls = validator_for(self._schema)
+        schema_validator = validator_cls(self._schema)
+        violations = sorted(
+            schema_validator.iter_errors(document),
+            key=jsonschema.exceptions.relevance,
+        )
+        errors = [
+            f"{'/'.join(str(p) for p in err.absolute_path) or '<root>'}: {err.message}"
+            for err in violations
+        ]
+        return ValidationResult(
+            ok=not errors,
+            profile=self.profile,
+            errors=errors,
+        )
 
 
 # --- Optional: delegate to an external CIRPASS-2 validator endpoint ---------
