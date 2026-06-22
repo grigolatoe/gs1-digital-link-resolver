@@ -210,3 +210,18 @@ def test_metrics_count_increments_on_resolve(client: TestClient) -> None:
         client.get("/metrics").text, 'gs1_resolver_requests_total{outcome="resolved"}'
     )
     assert after == before + 1
+
+
+def test_response_carries_generated_request_id(client: TestClient) -> None:
+    """Every response gets an X-Request-ID header even when none was sent."""
+    r1 = client.get("/healthz")
+    r2 = client.get("/healthz")
+    assert r1.headers.get("X-Request-ID")
+    # ids are unique per request
+    assert r1.headers["X-Request-ID"] != r2.headers["X-Request-ID"]
+
+
+def test_inbound_request_id_is_propagated(client: TestClient) -> None:
+    """A caller-supplied X-Request-ID is echoed back (trace continuity)."""
+    response = client.get("/healthz", headers={"X-Request-ID": "trace-abc-123"})
+    assert response.headers["X-Request-ID"] == "trace-abc-123"

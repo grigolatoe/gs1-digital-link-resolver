@@ -60,6 +60,7 @@ rollouts are deliberate. Every tag is PGP-signed — see
 | Env var | Default | Purpose |
 |---|---|---|
 | `CONFIG_PATH` | `/app/config/routes.yaml` | Absolute path to the routing config |
+| `LOG_LEVEL` | `INFO` | Log verbosity for the structured JSON logger |
 
 Mount your `routes.yaml` over the bundled example, or set `CONFIG_PATH` to a
 different location. Start from
@@ -189,8 +190,12 @@ Roll out config changes with `kubectl rollout restart deployment/gs1-resolver`
 
 - **Liveness/readiness:** `GET /healthz` returns `200 {"status":"ok"}` and never
   touches config or downstreams — safe to poll frequently.
-- **Logs:** uvicorn writes access/error logs to stdout/stderr; collect with your
-  platform's log driver.
+- **Logs:** the resolver emits **structured JSON** to stdout — one line per
+  request with `request_id`, `method`, `path`, `status`, and `duration_ms`
+  (health/metrics endpoints excluded to keep logs signal-rich). Every response
+  carries an `X-Request-ID` header; a caller-supplied `X-Request-ID` is
+  propagated for trace continuity. Set verbosity with `LOG_LEVEL` (default
+  `INFO`). To avoid duplicate access lines, run uvicorn with `--no-access-log`.
 - **Metrics:** `GET /metrics` exposes Prometheus text-format metrics (no extra
   dependency):
   - `gs1_resolver_requests_total{outcome="resolved|redirect|not_found|bad_request"}`

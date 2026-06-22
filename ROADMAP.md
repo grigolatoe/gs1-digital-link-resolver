@@ -48,7 +48,9 @@ hardened for untrusted public traffic.
 
 - [x] **`SECURITY.md`** — vulnerability disclosure policy at the repo root
   (supported versions, private reporting, PGP-encrypted option, scope). *(done)*
-- [ ] **Structured logging + request IDs** — for operability at scale.
+- [x] **Structured logging + request IDs** — JSON access logs (request_id,
+  method, path, status, duration_ms) + `X-Request-ID` propagation, `LOG_LEVEL`
+  configurable. *(done)*
 - [ ] **CIRPASS-2 CoP release announcement** (NGI M4 deliverable) — external,
   maintainer-posted.
 

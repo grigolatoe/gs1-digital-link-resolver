@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Structured JSON logging + request IDs** — one JSON access line per request
+  to stdout (`request_id`, `method`, `path`, `status`, `duration_ms`; health and
+  metrics endpoints excluded). Every response carries an `X-Request-ID` header;
+  a caller-supplied one is propagated. Verbosity via `LOG_LEVEL` (default
+  `INFO`); dependency-free (`resolver/logging_config.py`).
 - **Versioned config schema + stability contract** — `routes.yaml` gains an
   optional `version:` field (`CONFIG_SCHEMA_VERSION = 1`); an unsupported major
   fails fast at startup. `docs/stability.md` documents the two stable contracts

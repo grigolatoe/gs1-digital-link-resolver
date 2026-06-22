@@ -23,8 +23,10 @@ Or via Docker:
 
 from __future__ import annotations
 
+import logging
 import os
 import time
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
@@ -32,6 +34,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 
 from . import metrics
 from .linkset import build_jsonld, build_linkset, default_link_href
+from .logging_config import configure_logging
 from .negotiate import select_media_type
 from .parser import parse, validate_gtin14
 from .router import Router
@@ -40,6 +43,13 @@ CONFIG_PATH = Path(os.environ.get("CONFIG_PATH", "/app/config/routes.yaml"))
 
 VERSION = "0.3.0"
 
+configure_logging(os.environ.get("LOG_LEVEL", "INFO"))
+_access_log = logging.getLogger("resolver.access")
+
+# Request paths excluded from per-request access logging to keep logs signal-rich
+# (liveness probes and metric scrapes are high-frequency, low-information).
+_LOG_EXCLUDE = {"/healthz", "/metrics"}
+
 app = FastAPI(
     title="GS1 Digital Link Resolver",
     description="Open-source resolver for EU Digital Product Passports",
@@ -47,6 +57,29 @@ app = FastAPI(
     license_info={"name": "Apache 2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0"},
 )
 metrics.set_version(VERSION)
+
+
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    """Assign/propagate a request id, time the request, emit one structured
+    access-log line, and echo the id back in the X-Request-ID header."""
+    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
+    start = time.monotonic()
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    if request.url.path not in _LOG_EXCLUDE:
+        _access_log.info(
+            "request",
+            extra={
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "duration_ms": round((time.monotonic() - start) * 1000, 2),
+            },
+        )
+    return response
+
 
 _router: Router | None = None
 
