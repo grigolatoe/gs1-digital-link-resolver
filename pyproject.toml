@@ -24,7 +24,7 @@ dependencies = [
 [project.optional-dependencies]
 # Operators who enable the `schema` or `http` validator need these.
 validators = ["httpx", "jsonschema"]
-dev = ["pytest", "httpx", "jsonschema", "ruff==0.6.9"]
+dev = ["pytest", "httpx", "httpx2", "jsonschema", "ruff==0.6.9"]
 
 [project.urls]
 Homepage = "https://github.com/grigolatoe/gs1-digital-link-resolver"
@@ -36,6 +36,12 @@ version = {attr = "resolver.__version__"}
 [tool.setuptools.packages.find]
 include = ["resolver*"]
 exclude = ["config*", "tests*", "docs*"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    # starlette uses a deprecated anyio alias at import time; upstream, not ours.
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 100
