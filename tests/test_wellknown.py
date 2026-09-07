@@ -278,6 +278,26 @@ def test_dockerfile_label_matches_package_version() -> None:
     assert f'LABEL org.opencontainers.image.version="{__version__}"' in dockerfile
 
 
+def test_pyproject_takes_its_version_from_the_package() -> None:
+    """`resolver.__version__` must stay the single source of the version.
+
+    Asserted as a declaration rather than by comparing installed metadata,
+    which goes stale in an editable install between a bump and a reinstall.
+    A contributed PR once replaced this block with a hardcoded `version`,
+    which silently pinned the distribution a minor behind the package.
+    """
+    import tomllib
+
+    pyproject = tomllib.loads(
+        (Path(__file__).parent.parent / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    assert "version" in pyproject["project"].get(
+        "dynamic", []
+    ), "[project] must declare version as dynamic, not hardcode it"
+    assert "version" not in pyproject["project"]
+    assert pyproject["tool"]["setuptools"]["dynamic"]["version"] == {"attr": "resolver.__version__"}
+
+
 def test_bad_block_fails_the_service_at_startup(tmp_path: Path) -> None:
     """A non-conformant description file must not reach a running resolver."""
     with pytest.raises(ConfigError, match="not a GS1 primary key"):
