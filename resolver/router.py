@@ -16,6 +16,15 @@ Match clauses (any combination, all must match):
 
 A match shorthand of "*" (or {}) acts as a default fallback rule.
 
+Optional per route:
+
+  forward_query: ["qk", "nk"]  — query parameters copied from the incoming
+                                  URI onto the target and every link href, so
+                                  a carrier key printed after the "?" (a
+                                  verification token, a campaign tag) reaches
+                                  the DPP endpoint. Only the names listed are
+                                  forwarded; anything else is dropped, as before.
+
 Templates may reference any of: primary AI numeric ({01}), primary alpha
 ({gtin}), qualifier AIs/aliases, attribute AIs/aliases, plus convenience
 aliases {serial}, {batch}, {expiry}.
@@ -26,6 +35,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import yaml
 
@@ -79,6 +89,12 @@ def _validate_config(config: object) -> dict:
         if match not in ("*", {}, None) and not isinstance(match, dict):
             raise ConfigError(f"{where}.match must be '*' or a mapping of clauses")
 
+        fq = rule.get("forward_query")
+        if fq is not None and (
+            not isinstance(fq, list) or not all(isinstance(n, str) and n for n in fq)
+        ):
+            raise ConfigError(f"{where}.forward_query must be a list of non-empty strings")
+
         for j, lt in enumerate(rule.get("link_types", []) or []):
             ltwhere = f"{where}.link_types[{j}]"
             if not isinstance(lt, dict):
@@ -106,10 +122,12 @@ class LinkType:
     title: str = ""
     hreflang: str | None = None
 
-    def resolve(self, ctx: dict[str, str]) -> LinkType:
+    def resolve(
+        self, ctx: dict[str, str], forward: list[tuple[str, str]] | None = None
+    ) -> LinkType:
         return LinkType(
             rel=self.rel,
-            href=_fill(self.href, ctx),
+            href=_append_query(_fill(self.href, ctx), forward),
             type=self.type,
             title=_fill(self.title, ctx),
             hreflang=self.hreflang,
@@ -121,6 +139,16 @@ class Route:
     match: dict
     target: str
     link_types: list[LinkType] = field(default_factory=list)
+    forward_query: list[str] = field(default_factory=list)
+
+    def forwarded(self, parsed: GS1ParseResult) -> list[tuple[str, str]]:
+        """The (name, value) pairs of the incoming query this route forwards,
+        in the order the route lists the names."""
+        return [
+            (name, value)
+            for name in self.forward_query
+            for value in parsed.query_params.get(name, [])
+        ]
 
     def matches(self, parsed: GS1ParseResult) -> bool:
         if self.match in ("*", {}, None):
@@ -179,6 +207,7 @@ class Router:
                     match=rule.get("match", {}),
                     target=rule["target"],
                     link_types=link_types,
+                    forward_query=list(rule.get("forward_query") or []),
                 )
             )
         self.validator = load_validator(config.get("validator"))
@@ -195,8 +224,9 @@ class Router:
         ctx = parsed.as_dict()
         for route in self._routes:
             if route.matches(parsed):
-                target = _fill(route.target, ctx)
-                links = [lt.resolve(ctx) for lt in route.link_types]
+                forward = route.forwarded(parsed)
+                target = _append_query(_fill(route.target, ctx), forward)
+                links = [lt.resolve(ctx, forward) for lt in route.link_types]
                 return target, links
         return None
 
@@ -209,3 +239,12 @@ def _fill(template: str, ctx: dict[str, str]) -> str:
     for key in sorted(ctx.keys(), key=len, reverse=True):
         template = template.replace(f"{{{key}}}", ctx[key] or "")
     return template
+
+
+def _append_query(url: str, pairs: list[tuple[str, str]] | None) -> str:
+    """Append forwarded query pairs to url, keeping any query it already has."""
+    if not pairs or not url:
+        return url
+    parts = urlsplit(url)
+    query = parse_qsl(parts.query, keep_blank_values=True) + list(pairs)
+    return urlunsplit(parts._replace(query=urlencode(query)))
