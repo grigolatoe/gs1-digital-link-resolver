@@ -41,7 +41,7 @@ The release image ships on the GitHub Container Registry:
 
 ```bash
 docker run -p 8080:8080 \
-  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.1.0
+  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.2.0
 ```
 
 That binds the resolver on `localhost:8080` with the example config bundled
@@ -50,7 +50,7 @@ into the image. To bring your own routes, mount over `/app/config/routes.yaml`:
 ```bash
 docker run -p 8080:8080 \
   -v ./config/routes.yaml:/app/config/routes.yaml \
-  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.1.0
+  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.2.0
 ```
 
 Then visit:
@@ -80,10 +80,10 @@ procedure; the short version is:
 
 ```bash
 gpg --keyserver hkps://keys.openpgp.org --recv-keys 47DE71F021C986123851E8AD65A8E29C92A63D38
-gh release download v1.1.0 --repo grigolatoe/gs1-digital-link-resolver --pattern 'SIGNATURES-*'
-gpg --verify SIGNATURES-v1.1.0.txt.asc SIGNATURES-v1.1.0.txt
-docker pull ghcr.io/grigolatoe/gs1-digital-link-resolver:1.1.0
-# The digest reported by docker must match the one in SIGNATURES-v1.1.0.txt.
+gh release download v1.2.0 --repo grigolatoe/gs1-digital-link-resolver --pattern 'SIGNATURES-*'
+gpg --verify SIGNATURES-v1.2.0.txt.asc SIGNATURES-v1.2.0.txt
+docker pull ghcr.io/grigolatoe/gs1-digital-link-resolver:1.2.0
+# The digest reported by docker must match the one in SIGNATURES-v1.2.0.txt.
 ```
 
 ## Configuration
