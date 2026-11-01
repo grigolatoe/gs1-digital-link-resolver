@@ -4,7 +4,7 @@ Forward-looking plan. **1.0.0 has shipped** — every blocker below is done and
 the contracts are frozen under SemVer. What remains is post-1.0 polish and
 deferred work. For shipped detail see [CHANGELOG.md](CHANGELOG.md).
 
-## Where we are (1.1.0 "Signpost")
+## Where we are (1.2.0 "Relay")
 
 The resolver is **functionally complete** for GS1 Digital Link v1.2 routing:
 parser + full AI table, declarative YAML routing, RFC 9264 link-sets, content
@@ -61,6 +61,8 @@ hardened for untrusted public traffic.
 - [x] **`/.well-known/gs1resolver` description file** (1.1.0) — required of a
   GS1-conformant resolver; validates against GS1's published description-file
   schema, with the mandatory fields derived from the running config.
+- [x] **`forward_query` per route** (1.2.0): named query parameters (a carrier
+  key printed after the `?`) reach the DPP endpoint; opt-in.
 
 ## Deferred to 1.x (explicitly NOT 1.0 blockers)
 

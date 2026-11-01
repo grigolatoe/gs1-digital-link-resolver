@@ -40,7 +40,7 @@ not a live reload.
 ```bash
 docker run -p 8080:8080 \
   -v ./config/routes.yaml:/app/config/routes.yaml \
-  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.1.0
+  ghcr.io/grigolatoe/gs1-digital-link-resolver:1.2.0
 ```
 
 Verify it's up:
@@ -146,7 +146,7 @@ well_known:
 ```yaml
 services:
   resolver:
-    image: ghcr.io/grigolatoe/gs1-digital-link-resolver:1.1.0
+    image: ghcr.io/grigolatoe/gs1-digital-link-resolver:1.2.0
     restart: unless-stopped
     volumes:
       - ./routes.yaml:/app/config/routes.yaml:ro
@@ -179,7 +179,7 @@ spec:
     spec:
       containers:
         - name: resolver
-          image: ghcr.io/grigolatoe/gs1-digital-link-resolver:1.1.0
+          image: ghcr.io/grigolatoe/gs1-digital-link-resolver:1.2.0
           ports:
             - containerPort: 8080
           volumeMounts:

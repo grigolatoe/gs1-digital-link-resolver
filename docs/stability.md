@@ -20,6 +20,7 @@ Stable surface:
 | `resolvers` | list (non-empty) | Matched top-to-bottom, first match wins. |
 | `resolvers[].target` | string (required) | Template; `{...}` placeholders filled from the parsed URI. |
 | `resolvers[].match` | `"*"` or mapping | Clauses: `primary_ai`, `gtin_prefix`, `gtin_regex`, `has_qualifier`, `serial_in`. Omitted / `"*"` / `{}` = fallback. |
+| `resolvers[].forward_query` | list of strings | Optional. Query parameters copied from the request onto `target` and every link `href`; unlisted parameters are dropped. |
 | `resolvers[].link_types[]` | list of mappings | Each needs `rel` + `href`; optional `type`, `title`, `hreflang`. |
 | `validator` | mapping | `type: noop\|smoke\|schema\|http` (+ type-specific keys). |
 | `well_known` | mapping | Optional operator metadata for `/.well-known/gs1resolver`. Keys: `resolver_root`, `supported_primary_keys`, `name`, `terms_of_use`, `supported_link_type`, `link_type_default_can_be_linkset`, `supported_context_values_enumerated`, `supported_context_values_external`, `extension_profile`, `json_ld_context_location`, `contact`. |

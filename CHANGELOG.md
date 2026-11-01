@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] — "Relay" — 2026-11-01
+
+Backward compatible: a config without the new key behaves exactly as in 1.1.0.
+Test suite 159 → 166.
+
+### Added
+
+- `forward_query` per route: a list of query parameter names copied from the
+  incoming URI onto the target and every link `href`. Lets a key printed after
+  the `?` of a carrier (for example a scan or verification token) reach the DPP
+  endpoint. Opt-in: a route without it drops the query string as before.
+
 ## [1.1.0] — "Signpost" — 2026-09-04
 
 Closes a genuine conformance gap: the resolver now publishes the **GS1 resolver

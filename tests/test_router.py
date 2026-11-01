@@ -255,3 +255,54 @@ class TestRouterFromYaml:
         assert t.startswith("https://demo.test/")
         t, _ = router.resolve(parse("/01/09780345418913/21/REAL"))
         assert t.startswith("https://prod.test/")
+
+
+class TestForwardQuery:
+    """`forward_query` copies named query parameters onto the target and links."""
+
+    CFG = """
+        resolvers:
+          - match:
+              has_qualifier: "21"
+            forward_query: ["qk", "nk"]
+            target: "https://dpp.test/p/{serial}"
+            link_types:
+              - rel: "gs1:pip"
+                href: "https://dpp.test/p/{serial}?lang=en"
+          - match: "*"
+            target: "https://other.test/{gtin}"
+        """
+
+    def _router(self, tmp_path):
+        return Router(_write_yaml(tmp_path, self.CFG))
+
+    def test_listed_params_reach_target_and_links(self, tmp_path):
+        target, links = self._router(tmp_path).resolve(
+            parse("/01/09506000134352/21/ABC?qk=k%2B1&nk=n2&utm=x")
+        )
+        assert target == "https://dpp.test/p/ABC?qk=k%2B1&nk=n2"
+        assert links[0].href == "https://dpp.test/p/ABC?lang=en&qk=k%2B1&nk=n2"
+
+    def test_unlisted_params_are_dropped(self, tmp_path):
+        target, _ = self._router(tmp_path).resolve(
+            parse("/01/09506000134352/21/ABC?utm=x&linkType=gs1:pip")
+        )
+        assert target == "https://dpp.test/p/ABC"
+
+    def test_route_without_forward_query_keeps_old_behaviour(self, tmp_path):
+        target, _ = self._router(tmp_path).resolve(parse("/01/09506000134352?qk=k1"))
+        assert target == "https://other.test/09506000134352"
+
+    @pytest.mark.parametrize("bad", ['"qk"', "[1]", '[""]'])
+    def test_malformed_forward_query_raises(self, tmp_path, bad):
+        cfg = _write_yaml(
+            tmp_path,
+            f"""
+            resolvers:
+              - match: "*"
+                forward_query: {bad}
+                target: "https://x.test/{{gtin}}"
+            """,
+        )
+        with pytest.raises(ConfigError, match="forward_query"):
+            Router(cfg)
